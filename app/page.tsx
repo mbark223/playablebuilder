@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useProjectStore } from '@/store/project-store'
 import { Button } from '@/components/ui/button'
-import { Upload, Download, Settings, Play, Plus, FolderOpen } from 'lucide-react'
+import { Upload, Download, Settings, Play, Plus, FolderOpen, Image as ImageIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 // Dynamic imports to avoid SSR issues with canvas
@@ -11,11 +11,14 @@ const SlotCanvas = dynamic(() => import('@/components/slot-canvas'), { ssr: fals
 const ProjectDialog = dynamic(() => import('@/components/project-dialog'), { ssr: false })
 const SymbolUploader = dynamic(() => import('@/components/symbol-uploader'), { ssr: false })
 const ExportDialog = dynamic(() => import('@/components/export-dialog'), { ssr: false })
+const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uploader'), { ssr: false })
+const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 
 export default function Home() {
   const [showProjectDialog, setShowProjectDialog] = useState(false)
   const [showSymbolUploader, setShowSymbolUploader] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  const [showBrandAssetsUploader, setShowBrandAssetsUploader] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
   
   const { currentProject, projects } = useProjectStore()
@@ -169,7 +172,7 @@ export default function Home() {
           </div>
           
           {/* Right Sidebar - Properties */}
-          <div className="col-span-3 space-y-4">
+          <div className="col-span-3 space-y-4 max-h-[calc(100vh-8rem)] overflow-y-auto">
             <div className="bg-card rounded-lg p-4 border">
               <h2 className="font-semibold mb-4">Properties</h2>
               
@@ -199,6 +202,11 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground">No project selected</p>
               )}
             </div>
+            
+            {/* Brand Assets Section */}
+            {currentProject && (
+              <BrandAssetsManager onUploadClick={() => setShowBrandAssetsUploader(true)} />
+            )}
             
             <div className="bg-card rounded-lg p-4 border">
               <h2 className="font-semibold mb-4">Export Stats</h2>
@@ -236,6 +244,13 @@ export default function Home() {
         <ExportDialog
           open={showExportDialog}
           onOpenChange={setShowExportDialog}
+        />
+      )}
+      
+      {showBrandAssetsUploader && (
+        <BrandAssetsUploader
+          open={showBrandAssetsUploader}
+          onOpenChange={setShowBrandAssetsUploader}
         />
       )}
     </div>

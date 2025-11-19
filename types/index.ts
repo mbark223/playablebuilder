@@ -92,6 +92,13 @@ export interface SlotProject {
     animations: Asset[]
     audio: Asset[]
   }
+  brandAssets: {
+    logos: BrandAsset[]
+    banners: BrandAsset[]
+    screenshots: BrandAsset[]
+    guidelines: BrandAsset[]
+    videos: BrandAsset[]
+  }
   interface: {
     layout: string
     theme: string
@@ -107,10 +114,21 @@ export interface SlotProject {
 export interface Asset {
   id: string
   name: string
-  type: 'image' | 'audio' | 'animation'
+  type: 'image' | 'audio' | 'animation' | 'video' | 'document'
   url: string
   size: number
   metadata?: any
+}
+
+export interface BrandAsset extends Asset {
+  category: 'logo' | 'banner' | 'screenshot' | 'guideline' | 'video'
+  tags?: string[]
+  description?: string
+  dimensions?: {
+    width: number
+    height: number
+  }
+  duration?: number // for videos in seconds
 }
 
 export interface Export {

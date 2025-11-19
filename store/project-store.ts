@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { SlotProject, Symbol, ReelConfiguration, PaylineConfig, FeatureTrigger, MathModel } from '@/types'
+import type { SlotProject, Symbol, ReelConfiguration, PaylineConfig, FeatureTrigger, MathModel, BrandAsset } from '@/types'
 
 interface ProjectStore {
   currentProject: SlotProject | null
@@ -30,6 +30,11 @@ interface ProjectStore {
   
   // Math model actions
   updateMathModel: (math: Partial<MathModel>) => void
+  
+  // Brand asset actions
+  addBrandAsset: (category: BrandAsset['category'], asset: BrandAsset) => void
+  updateBrandAsset: (category: BrandAsset['category'], id: string, updates: Partial<BrandAsset>) => void
+  removeBrandAsset: (category: BrandAsset['category'], id: string) => void
 }
 
 const defaultReelConfig: ReelConfiguration = {
@@ -97,6 +102,13 @@ export const useProjectStore = create<ProjectStore>()(
             frames: [],
             animations: [],
             audio: []
+          },
+          brandAssets: {
+            logos: [],
+            banners: [],
+            screenshots: [],
+            guidelines: [],
+            videos: []
           },
           interface: {
             layout: 'classic',
@@ -322,6 +334,101 @@ export const useProjectStore = create<ProjectStore>()(
           config: {
             ...currentProject.config,
             math: { ...currentProject.config.math, ...math }
+          },
+          modified: new Date()
+        }
+        
+        set((state) => ({
+          currentProject: updatedProject,
+          projects: state.projects.map(p => 
+            p.id === currentProject.id ? updatedProject : p
+          )
+        }))
+      },
+      
+      addBrandAsset: (category, asset) => {
+        const { currentProject } = get()
+        if (!currentProject) return
+        
+        const categoryMap = {
+          logo: 'logos',
+          banner: 'banners',
+          screenshot: 'screenshots',
+          guideline: 'guidelines',
+          video: 'videos'
+        } as const
+        
+        const categoryKey = categoryMap[category] || 'logos'
+        
+        const updatedProject = {
+          ...currentProject,
+          brandAssets: {
+            ...currentProject.brandAssets,
+            [categoryKey]: [...(currentProject.brandAssets?.[categoryKey] || []), asset]
+          },
+          modified: new Date()
+        }
+        
+        set((state) => ({
+          currentProject: updatedProject,
+          projects: state.projects.map(p => 
+            p.id === currentProject.id ? updatedProject : p
+          )
+        }))
+      },
+      
+      updateBrandAsset: (category, id, updates) => {
+        const { currentProject } = get()
+        if (!currentProject) return
+        
+        const categoryMap = {
+          logo: 'logos',
+          banner: 'banners',
+          screenshot: 'screenshots',
+          guideline: 'guidelines',
+          video: 'videos'
+        } as const
+        
+        const categoryKey = categoryMap[category] || 'logos'
+        
+        const updatedProject = {
+          ...currentProject,
+          brandAssets: {
+            ...currentProject.brandAssets,
+            [categoryKey]: (currentProject.brandAssets?.[categoryKey] || []).map(asset =>
+              asset.id === id ? { ...asset, ...updates } : asset
+            )
+          },
+          modified: new Date()
+        }
+        
+        set((state) => ({
+          currentProject: updatedProject,
+          projects: state.projects.map(p => 
+            p.id === currentProject.id ? updatedProject : p
+          )
+        }))
+      },
+      
+      removeBrandAsset: (category, id) => {
+        const { currentProject } = get()
+        if (!currentProject) return
+        
+        const categoryMap = {
+          logo: 'logos',
+          banner: 'banners',
+          screenshot: 'screenshots',
+          guideline: 'guidelines',
+          video: 'videos'
+        } as const
+        
+        const categoryKey = categoryMap[category] || 'logos'
+        
+        const updatedProject = {
+          ...currentProject,
+          brandAssets: {
+            ...currentProject.brandAssets,
+            [categoryKey]: (currentProject.brandAssets?.[categoryKey] || []).filter(asset => asset.id !== id)
           },
           modified: new Date()
         }
