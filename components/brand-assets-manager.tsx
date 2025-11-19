@@ -20,7 +20,7 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
   
   if (!currentProject) return null
   
-  const brandAssets = currentProject.brandAssets || {
+  const brandAssets = currentProject?.brandAssets || {
     logos: [],
     banners: [],
     screenshots: [],

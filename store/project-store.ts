@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { SlotProject, Symbol, ReelConfiguration, PaylineConfig, FeatureTrigger, MathModel, BrandAsset } from '@/types'
 
 interface ProjectStore {
@@ -442,7 +442,18 @@ export const useProjectStore = create<ProjectStore>()(
       }
     }),
     {
-      name: 'playable-ad-projects'
+      name: 'playable-ad-projects',
+      storage: createJSONStorage(() => {
+        if (typeof window !== 'undefined') {
+          return localStorage
+        }
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {}
+        }
+      }),
+      skipHydration: true
     }
   )
 )

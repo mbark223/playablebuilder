@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useProjectStore } from '@/store/project-store'
+import { useStoreHydration } from '@/hooks/use-store-hydration'
 import { Button } from '@/components/ui/button'
 import { Upload, Download, Settings, Play, Plus, FolderOpen, Image as ImageIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -22,6 +23,7 @@ export default function Home() {
   const [isSpinning, setIsSpinning] = useState(false)
   
   const { currentProject, projects } = useProjectStore()
+  useStoreHydration()
   
   useEffect(() => {
     if (!currentProject && projects.length === 0) {
