@@ -326,8 +326,9 @@ export const predefinedTemplates: PlayableTemplate[] = [
       },
       paylines: {
         type: 'fixed',
-        count: 25,
-        patterns: []
+        fixedLines: [],
+        displayStyle: 'onWin',
+        animation: 'glow'
       },
       math: {
         rtp: 96.8,
@@ -585,8 +586,9 @@ export const predefinedTemplates: PlayableTemplate[] = [
       },
       paylines: {
         type: 'fixed',
-        count: 5,
-        patterns: []
+        fixedLines: [],
+        displayStyle: 'onWin',
+        animation: 'trace'
       },
       math: {
         rtp: 97.0,
@@ -706,8 +708,9 @@ export const predefinedTemplates: PlayableTemplate[] = [
       },
       paylines: {
         type: 'fixed',
-        count: 15,
-        patterns: []
+        fixedLines: [],
+        displayStyle: 'onWin',
+        animation: 'pulse'
       },
       math: {
         rtp: 96.0,
