@@ -35,6 +35,10 @@ export class SimpleSlotRenderer {
   }
   
   async loadSymbols(symbols: Symbol[]): Promise<void> {
+    // Clear existing symbols
+    this.symbols.clear()
+    this.symbolData.clear()
+    
     const loadPromises = symbols.map(async (symbol) => {
       const img = new Image()
       img.crossOrigin = 'anonymous'
@@ -45,12 +49,16 @@ export class SimpleSlotRenderer {
           this.symbolData.set(symbol.id, symbol)
           resolve()
         }
-        img.onerror = reject
+        img.onerror = (e) => {
+          console.warn(`Failed to load symbol ${symbol.name}:`, e)
+          resolve() // Continue loading other symbols
+        }
         img.src = symbol.image
       })
     })
     
     await Promise.all(loadPromises)
+    console.log(`Loaded ${this.symbols.size} symbols for simple renderer`)
     this.draw()
   }
   

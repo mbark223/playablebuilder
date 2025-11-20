@@ -86,19 +86,26 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         setIsReady(false)
       }
     }
-  }, [project.config.reels])
+  }, []) // Remove dependency to prevent re-initialization on config changes
   
   useEffect(() => {
     if (!rendererRef.current) return
     
     // Update symbols
     if (project.config.symbols.length > 0) {
-      rendererRef.current.loadSymbols(project.config.symbols)
-      setIsReady(true)
+      rendererRef.current.loadSymbols(project.config.symbols).then(() => {
+        setIsReady(true)
+      }).catch((err) => {
+        console.error('Failed to load symbols:', err)
+        // Still set ready for simple renderer
+        if (rendererType === 'simple') {
+          setIsReady(true)
+        }
+      })
     } else {
       setIsReady(false)
     }
-  }, [project.config.symbols])
+  }, [project.config.symbols, rendererType])
   
   useEffect(() => {
     if (!rendererRef.current || !isSpinning || !isReady) return
@@ -145,6 +152,13 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           <p className="text-sm font-medium">Last Win</p>
           <p className="text-2xl font-bold">{lastResult.totalWin}x</p>
           <p className="text-xs text-gray-400">{lastResult.wins.length} lines</p>
+        </div>
+      )}
+      
+      {/* Renderer status indicator */}
+      {rendererType === 'simple' && isReady && (
+        <div className="absolute top-2 left-2 bg-yellow-500/20 text-yellow-300 text-xs px-2 py-1 rounded">
+          Simplified Mode
         </div>
       )}
     </div>
