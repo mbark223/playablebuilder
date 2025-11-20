@@ -15,24 +15,42 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
   const rendererRef = useRef<SlotRenderer | null>(null)
   const [lastResult, setLastResult] = useState<SpinResult | null>(null)
   const [isReady, setIsReady] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
     if (!canvasRef.current) return
     
-    // Create renderer
-    const renderer = new SlotRenderer(canvasRef.current, project.config.reels)
-    rendererRef.current = renderer
-    
-    // Load symbols
-    if (project.config.symbols.length > 0) {
-      renderer.loadSymbols(project.config.symbols)
-      setIsReady(true)
+    try {
+      // Check WebGL support
+      const testCanvas = document.createElement('canvas')
+      const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
+      if (!gl) {
+        setError('WebGL is not supported in your browser')
+        return
+      }
+      
+      // Create renderer
+      const renderer = new SlotRenderer(canvasRef.current, project.config.reels)
+      rendererRef.current = renderer
+      
+      // Load symbols
+      if (project.config.symbols.length > 0) {
+        renderer.loadSymbols(project.config.symbols)
+        setIsReady(true)
+      }
+      
+      setError(null)
+    } catch (err) {
+      console.error('Failed to initialize slot renderer:', err)
+      setError('Failed to initialize graphics renderer')
     }
     
     return () => {
-      renderer.destroy()
-      rendererRef.current = null
-      setIsReady(false)
+      if (rendererRef.current) {
+        rendererRef.current.destroy()
+        rendererRef.current = null
+        setIsReady(false)
+      }
     }
   }, [project.config.reels])
   
@@ -67,7 +85,16 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         style={{ aspectRatio: '16/9' }}
       />
       
-      {!isReady && (
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+          <div className="text-white text-center">
+            <p className="mb-2">{error}</p>
+            <p className="text-sm text-gray-400">Try refreshing the page or using a different browser</p>
+          </div>
+        </div>
+      )}
+      
+      {!error && !isReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80">
           <p className="text-white text-center">
             {project.config.symbols.length === 0

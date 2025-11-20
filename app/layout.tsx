@@ -7,6 +7,11 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Playable Ad Builder - Create High-Performance Slot Game Ads",
   description: "Build engaging playable slot game ads for Meta, Snapchat, TikTok, and Google with our specialized tool",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
