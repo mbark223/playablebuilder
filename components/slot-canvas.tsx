@@ -20,34 +20,48 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
   useEffect(() => {
     if (!canvasRef.current) return
     
-    try {
-      // Check WebGL support
-      const testCanvas = document.createElement('canvas')
-      const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
-      if (!gl) {
-        setError('WebGL is not supported in your browser')
-        return
+    // Small delay to ensure canvas is properly mounted
+    const initTimer = setTimeout(() => {
+      try {
+        // Check WebGL support
+        const testCanvas = document.createElement('canvas')
+        const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
+        if (!gl) {
+          setError('WebGL is not supported in your browser')
+          return
+        }
+        
+        // Create renderer with error handling
+        try {
+          const renderer = new SlotRenderer(canvasRef.current!, project.config.reels)
+          rendererRef.current = renderer
+          
+          // Load symbols
+          if (project.config.symbols.length > 0) {
+            renderer.loadSymbols(project.config.symbols)
+            setIsReady(true)
+          }
+          
+          setError(null)
+        } catch (pixiError) {
+          console.error('PIXI.js initialization error:', pixiError)
+          // Try fallback to canvas renderer
+          setError('Graphics initialization failed. Please refresh the page.')
+        }
+      } catch (err) {
+        console.error('Failed to initialize slot renderer:', err)
+        setError('Failed to initialize graphics renderer')
       }
-      
-      // Create renderer
-      const renderer = new SlotRenderer(canvasRef.current, project.config.reels)
-      rendererRef.current = renderer
-      
-      // Load symbols
-      if (project.config.symbols.length > 0) {
-        renderer.loadSymbols(project.config.symbols)
-        setIsReady(true)
-      }
-      
-      setError(null)
-    } catch (err) {
-      console.error('Failed to initialize slot renderer:', err)
-      setError('Failed to initialize graphics renderer')
-    }
+    }, 100)
     
     return () => {
+      clearTimeout(initTimer)
       if (rendererRef.current) {
-        rendererRef.current.destroy()
+        try {
+          rendererRef.current.destroy()
+        } catch (e) {
+          console.error('Error destroying renderer:', e)
+        }
         rendererRef.current = null
         setIsReady(false)
       }

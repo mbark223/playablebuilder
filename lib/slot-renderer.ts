@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js'
 import type { ReelConfiguration, Symbol, SpinResult, WinLine } from '@/types'
 import { delay } from '@/lib/utils'
+import './pixi-init' // Initialize PIXI settings
 
 export class SlotRenderer {
   private app: PIXI.Application
@@ -14,6 +15,7 @@ export class SlotRenderer {
   
   constructor(canvas: HTMLCanvasElement, config: ReelConfiguration) {
     this.config = config
+    
     this.app = new PIXI.Application({
       view: canvas,
       width: 1280,
@@ -21,7 +23,12 @@ export class SlotRenderer {
       antialias: true,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
-      backgroundColor: 0x000000
+      backgroundColor: 0x000000,
+      // Force canvas if WebGL fails
+      forceCanvas: false,
+      // Disable some features that might cause issues
+      sharedTicker: true,
+      sharedLoader: true
     })
     
     this.container = new PIXI.Container()
