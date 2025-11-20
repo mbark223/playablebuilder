@@ -16,23 +16,50 @@ export function initializePixi() {
     }
   }
 
-  // Override problematic WebGL checks
+  // Override problematic WebGL checks more aggressively
   if (typeof window !== 'undefined' && window.WebGLRenderingContext) {
     const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+    const originalGetExtension = WebGLRenderingContext.prototype.getExtension;
+    
+    // Override getParameter to handle all shader-related queries
     WebGLRenderingContext.prototype.getParameter = function(param: number) {
       try {
-        const result = originalGetParameter.call(this, param);
-        // If we get 0 or null for shader-related parameters, return a safe default
-        if ((result === 0 || result === null) && 
-            (param === 0x8DFB || param === 0x8DFC || param === 0x8DFD || param === 0x8DFE || param === 0x8DFF)) {
-          return 128; // Safe default for shader parameters
+        // Handle specific problematic parameters
+        switch (param) {
+          // MAX_VERTEX_UNIFORM_VECTORS
+          case 0x8DFB:
+            return 128;
+          // MAX_VARYING_VECTORS
+          case 0x8DFC:
+            return 16;
+          // MAX_FRAGMENT_UNIFORM_VECTORS
+          case 0x8DFD:
+            return 128;
+          // MAX_VERTEX_ATTRIBS
+          case 0x8869:
+            return 16;
+          // MAX_TEXTURE_IMAGE_UNITS
+          case 0x8872:
+            return 16;
+          default:
+            const result = originalGetParameter.call(this, param);
+            // Ensure we never return 0 for critical parameters
+            if (result === 0 || result === null) {
+              console.warn(`WebGL parameter ${param.toString(16)} returned ${result}, using fallback`);
+              return 1;
+            }
+            return result;
         }
-        return result;
       } catch (e) {
         console.warn('WebGL parameter error:', e);
-        return 128; // Safe fallback
+        return 1; // Safe fallback
       }
     };
+
+    // Also handle WebGL2 if available
+    if (window.WebGL2RenderingContext) {
+      WebGL2RenderingContext.prototype.getParameter = WebGLRenderingContext.prototype.getParameter;
+    }
   }
 }
 

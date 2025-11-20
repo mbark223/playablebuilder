@@ -43,10 +43,18 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           }
           
           setError(null)
-        } catch (pixiError) {
+        } catch (pixiError: any) {
           console.error('PIXI.js initialization error:', pixiError)
-          // Try fallback to canvas renderer
-          setError('Graphics initialization failed. Please refresh the page.')
+          // Provide more specific error message
+          if (pixiError.message.includes('WebGL')) {
+            setError('WebGL is not working properly. The game will use Canvas mode.')
+            // Still try to set ready if canvas fallback worked
+            if (rendererRef.current && project.config.symbols.length > 0) {
+              setIsReady(true)
+            }
+          } else {
+            setError('Graphics initialization failed. Please refresh the page.')
+          }
         }
       } catch (err) {
         console.error('Failed to initialize slot renderer:', err)
@@ -103,7 +111,9 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         <div className="absolute inset-0 flex items-center justify-center bg-black/80">
           <div className="text-white text-center">
             <p className="mb-2">{error}</p>
-            <p className="text-sm text-gray-400">Try refreshing the page or using a different browser</p>
+            {!error.includes('Canvas mode') && (
+              <p className="text-sm text-gray-400">Try refreshing the page or using a different browser</p>
+            )}
           </div>
         </div>
       )}
