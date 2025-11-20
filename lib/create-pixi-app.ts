@@ -8,52 +8,60 @@ export interface CreatePixiAppOptions {
   backgroundColor?: number
 }
 
+// Monkey patch PIXI to avoid the shader check error
+if (typeof window !== 'undefined') {
+  // Override the checkMaxIfStatementsInShader function that's causing issues
+  const pixiUtils = (PIXI as any).utils || (PIXI as any);
+  if (pixiUtils.checkMaxIfStatementsInShader) {
+    pixiUtils.checkMaxIfStatementsInShader = function() {
+      return true; // Always return true to bypass the check
+    };
+  }
+  
+  // Also try to patch it on the renderer utils
+  if ((PIXI as any).Renderer?.utils?.checkMaxIfStatementsInShader) {
+    (PIXI as any).Renderer.utils.checkMaxIfStatementsInShader = function() {
+      return true;
+    };
+  }
+}
+
 export function createPixiApp(options: CreatePixiAppOptions): PIXI.Application | null {
+  // First, let's try to create a simple canvas renderer directly
   try {
-    // First try WebGL
+    // Force Canvas2D renderer from the start
     const app = new PIXI.Application({
       view: options.view,
       width: options.width,
       height: options.height,
-      antialias: true,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
       backgroundColor: options.backgroundColor || 0x000000,
-      forceCanvas: false,
-      powerPreference: 'low-power' // Use low power to avoid some GPU issues
+      forceCanvas: true, // Always use Canvas
+      // Disable features that might cause issues
+      antialias: false,
+      preserveDrawingBuffer: false,
+      powerPreference: 'low-power'
     });
     
-    // Test if WebGL is working properly
-    const renderer = app.renderer;
-    if (renderer.type === PIXI.RENDERER_TYPE.WEBGL) {
-      // Simple test to ensure WebGL context is functional
-      const gl = (renderer as any).gl;
-      if (!gl || gl.isContextLost()) {
-        throw new Error('WebGL context lost or unavailable');
-      }
-    }
-    
+    console.log('Successfully initialized Canvas renderer');
     return app;
-  } catch (webglError) {
-    console.warn('WebGL initialization failed, falling back to Canvas:', webglError);
+  } catch (error) {
+    console.error('Canvas renderer initialization failed:', error);
     
+    // Try one more time with minimal options
     try {
-      // Fallback to Canvas renderer
       const app = new PIXI.Application({
         view: options.view,
         width: options.width,
         height: options.height,
-        antialias: false, // Canvas doesn't support antialiasing
-        resolution: window.devicePixelRatio || 1,
-        autoDensity: true,
         backgroundColor: options.backgroundColor || 0x000000,
-        forceCanvas: true // Force Canvas renderer
+        forceCanvas: true
       });
       
-      console.log('Successfully initialized Canvas renderer');
       return app;
-    } catch (canvasError) {
-      console.error('Both WebGL and Canvas initialization failed:', canvasError);
+    } catch (finalError) {
+      console.error('All renderer initialization attempts failed:', finalError);
       return null;
     }
   }

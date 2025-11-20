@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { SlotRenderer } from '@/lib/slot-renderer'
+import { SimpleSlotRenderer } from '@/lib/simple-slot-renderer'
 import type { SlotProject, SpinResult } from '@/types'
 
 interface SlotCanvasProps {
@@ -12,10 +13,11 @@ interface SlotCanvasProps {
 
 export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rendererRef = useRef<SlotRenderer | null>(null)
+  const rendererRef = useRef<SlotRenderer | SimpleSlotRenderer | null>(null)
   const [lastResult, setLastResult] = useState<SpinResult | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rendererType, setRendererType] = useState<'pixi' | 'simple'>('pixi')
   
   useEffect(() => {
     if (!canvasRef.current) return
@@ -35,6 +37,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         try {
           const renderer = new SlotRenderer(canvasRef.current!, project.config.reels)
           rendererRef.current = renderer
+          setRendererType('pixi')
           
           // Load symbols
           if (project.config.symbols.length > 0) {
@@ -45,14 +48,23 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           setError(null)
         } catch (pixiError: any) {
           console.error('PIXI.js initialization error:', pixiError)
-          // Provide more specific error message
-          if (pixiError.message.includes('WebGL')) {
-            setError('WebGL is not working properly. The game will use Canvas mode.')
-            // Still try to set ready if canvas fallback worked
-            if (rendererRef.current && project.config.symbols.length > 0) {
+          
+          // Try simple canvas fallback
+          try {
+            console.log('Falling back to simple canvas renderer')
+            const simpleRenderer = new SimpleSlotRenderer(canvasRef.current!, project.config.reels)
+            rendererRef.current = simpleRenderer
+            setRendererType('simple')
+            
+            // Load symbols
+            if (project.config.symbols.length > 0) {
+              simpleRenderer.loadSymbols(project.config.symbols)
               setIsReady(true)
             }
-          } else {
+            
+            setError('Using simplified renderer (some effects may be limited)')
+          } catch (fallbackError) {
+            console.error('Simple renderer also failed:', fallbackError)
             setError('Graphics initialization failed. Please refresh the page.')
           }
         }
