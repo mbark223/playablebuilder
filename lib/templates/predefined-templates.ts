@@ -103,6 +103,8 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'medium',
         hitFrequency: 25,
         maxWin: 5000,
+        baseGameWeight: 70,
+        featureWeight: 30,
         demonstrationMode: {
           guaranteedBigWin: true,
           triggerTiming: 10,
@@ -223,6 +225,8 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'high',
         hitFrequency: 30,
         maxWin: 10000,
+        baseGameWeight: 65,
+        featureWeight: 35,
         demonstrationMode: {
           guaranteedBigWin: true,
           triggerTiming: 10,
@@ -330,6 +334,8 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'medium',
         hitFrequency: 22,
         maxWin: 7500,
+        baseGameWeight: 60,
+        featureWeight: 40,
         demonstrationMode: {
           guaranteedBigWin: true,
           triggerTiming: 10,
@@ -469,6 +475,8 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'very-high',
         hitFrequency: 20,
         maxWin: 50000,
+        baseGameWeight: 50,
+        featureWeight: 50,
         demonstrationMode: {
           guaranteedBigWin: true,
           triggerTiming: 10,
@@ -585,6 +593,8 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'low',
         hitFrequency: 35,
         maxWin: 1000,
+        baseGameWeight: 80,
+        featureWeight: 20,
         demonstrationMode: {
           guaranteedBigWin: true,
           triggerTiming: 10,
@@ -704,6 +714,8 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'medium',
         hitFrequency: 28,
         maxWin: 3000,
+        baseGameWeight: 75,
+        featureWeight: 25,
         demonstrationMode: {
           guaranteedBigWin: true,
           triggerTiming: 10,
