@@ -4,10 +4,12 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, AlertCircle, Loader2 } from 'lucide-react'
 import { useProjectStore } from '@/store/project-store'
-import { generateId, formatFileSize } from '@/lib/utils'
+import { generateId } from '@/lib/utils'
+import { compressImage, formatFileSize } from '@/lib/image-utils'
 import type { Symbol, SymbolType } from '@/types'
+import { Progress } from '@/components/ui/progress'
 
 interface SymbolUploaderProps {
   open: boolean
@@ -25,18 +27,64 @@ interface UploadedFile {
 export default function SymbolUploader({ open, onOpenChange }: SymbolUploaderProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [compressionProgress, setCompressionProgress] = useState(0)
+  const [isCompressing, setIsCompressing] = useState(false)
   const { addSymbol } = useProjectStore()
   
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
-      id: generateId(),
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name.split('.')[0],
-      type: 'regular' as SymbolType
-    }))
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setIsCompressing(true)
+    setCompressionProgress(0)
+    
+    const newFiles: UploadedFile[] = []
+    
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i]
+      try {
+        // Compress large images
+        if (file.size > 500 * 1024) { // If larger than 500KB
+          const compressed = await compressImage(file, {
+            maxWidth: 512,
+            maxHeight: 512,
+            quality: 0.85,
+            format: 'webp'
+          })
+          
+          newFiles.push({
+            id: generateId(),
+            file: compressed.file,
+            preview: compressed.dataUrl,
+            name: file.name.split('.')[0],
+            type: 'regular' as SymbolType
+          })
+        } else {
+          // Use original if small enough
+          newFiles.push({
+            id: generateId(),
+            file,
+            preview: URL.createObjectURL(file),
+            name: file.name.split('.')[0],
+            type: 'regular' as SymbolType
+          })
+        }
+      } catch (error) {
+        console.error('Failed to process file:', error)
+        // Use original on error
+        newFiles.push({
+          id: generateId(),
+          file,
+          preview: URL.createObjectURL(file),
+          name: file.name.split('.')[0],
+          type: 'regular' as SymbolType
+        })
+      }
+      
+      setCompressionProgress(((i + 1) / acceptedFiles.length) * 100)
+    }
     
     setUploadedFiles(prev => [...prev, ...newFiles])
+    setIsCompressing(false)
+    setCompressionProgress(0)
   }, [])
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -71,15 +119,24 @@ export default function SymbolUploader({ open, onOpenChange }: SymbolUploaderPro
   
   const handleUpload = async () => {
     setIsUploading(true)
+    setUploadProgress(0)
     
-    for (const uploadedFile of uploadedFiles) {
-      // In a real app, you'd upload to a server/CDN here
-      // For now, we'll use data URLs
-      const reader = new FileReader()
-      const dataUrl = await new Promise<string>((resolve) => {
-        reader.onload = (e) => resolve(e.target?.result as string)
-        reader.readAsDataURL(uploadedFile.file)
-      })
+    const total = uploadedFiles.length
+    
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const uploadedFile = uploadedFiles[i]
+      
+      // Use the preview if it's already a data URL (compressed), otherwise read the file
+      let dataUrl: string
+      if (uploadedFile.preview.startsWith('data:')) {
+        dataUrl = uploadedFile.preview
+      } else {
+        const reader = new FileReader()
+        dataUrl = await new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string)
+          reader.readAsDataURL(uploadedFile.file)
+        })
+      }
       
       const symbol: Symbol = {
         id: uploadedFile.id,
@@ -96,12 +153,18 @@ export default function SymbolUploader({ open, onOpenChange }: SymbolUploaderPro
       }
       
       addSymbol(symbol)
+      setUploadProgress(((i + 1) / total) * 100)
     }
     
     // Cleanup
-    uploadedFiles.forEach(file => URL.revokeObjectURL(file.preview))
+    uploadedFiles.forEach(file => {
+      if (!file.preview.startsWith('data:')) {
+        URL.revokeObjectURL(file.preview)
+      }
+    })
     setUploadedFiles([])
     setIsUploading(false)
+    setUploadProgress(0)
     onOpenChange(false)
   }
   
@@ -193,22 +256,51 @@ export default function SymbolUploader({ open, onOpenChange }: SymbolUploaderPro
             <div className="mt-4 flex items-center gap-2 p-3 bg-yellow-500/10 rounded-lg">
               <AlertCircle className="h-4 w-4 text-yellow-500" />
               <p className="text-sm text-yellow-500">
-                Large number of symbols may impact performance. Consider optimizing your images.
+                Large number of symbols may impact performance. Images are automatically optimized.
               </p>
+            </div>
+          )}
+          
+          {isCompressing && (
+            <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+              <p className="text-sm font-medium mb-2">Optimizing images...</p>
+              <Progress value={compressionProgress} className="h-2" />
             </div>
           )}
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleUpload}
-            disabled={uploadedFiles.length === 0 || isUploading}
-          >
-            {isUploading ? 'Uploading...' : `Upload ${uploadedFiles.length} Symbol${uploadedFiles.length !== 1 ? 's' : ''}`}
-          </Button>
+          <div className="flex items-center justify-between w-full">
+            {isUploading && (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">{Math.round(uploadProgress)}% complete</span>
+              </div>
+            )}
+            {uploadedFiles.length > 0 && !isUploading && (
+              <div className="text-sm text-muted-foreground">
+                Total size: {formatFileSize(uploadedFiles.reduce((acc, f) => acc + f.file.size, 0))}
+              </div>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={handleClose} disabled={isUploading}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpload}
+                disabled={uploadedFiles.length === 0 || isUploading || isCompressing}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  `Upload ${uploadedFiles.length} Symbol${uploadedFiles.length !== 1 ? 's' : ''}`
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

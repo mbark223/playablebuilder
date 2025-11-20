@@ -6,9 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { Upload, X, FileText, Image as ImageIcon, Video, AlertCircle, Loader2 } from 'lucide-react'
 import { useProjectStore } from '@/store/project-store'
-import { generateId, formatFileSize } from '@/lib/utils'
+import { generateId } from '@/lib/utils'
+import { compressImage, formatFileSize } from '@/lib/image-utils'
 import type { BrandAsset } from '@/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
 
 interface BrandAssetsUploaderProps {
   open: boolean
@@ -26,6 +28,8 @@ interface UploadedFile {
 export default function BrandAssetsUploader({ open, onOpenChange }: BrandAssetsUploaderProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isCompressing, setIsCompressing] = useState(false)
   const [activeCategory, setActiveCategory] = useState<BrandAsset['category']>('logo')
   const { addBrandAsset } = useProjectStore()
   
@@ -50,18 +54,44 @@ export default function BrandAssetsUploader({ open, onOpenChange }: BrandAssetsU
     }
   }
   
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
-      id: generateId(),
-      file,
-      preview: file.type.startsWith('image/') || file.type.startsWith('video/') 
-        ? URL.createObjectURL(file) 
-        : '',
-      category: activeCategory,
-      description: ''
-    }))
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setIsCompressing(true)
+    const newFiles: UploadedFile[] = []
+    
+    for (const file of acceptedFiles) {
+      let processedFile = file
+      let preview = ''
+      
+      // Compress large images
+      if (file.type.startsWith('image/') && file.size > 1024 * 1024) { // > 1MB
+        try {
+          const compressed = await compressImage(file, {
+            maxWidth: activeCategory === 'logo' ? 512 : 1920,
+            maxHeight: activeCategory === 'logo' ? 512 : 1080,
+            quality: 0.9,
+            format: 'webp'
+          })
+          processedFile = compressed.file
+          preview = compressed.dataUrl
+        } catch (error) {
+          console.error('Compression failed:', error)
+          preview = URL.createObjectURL(file)
+        }
+      } else if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        preview = URL.createObjectURL(file)
+      }
+      
+      newFiles.push({
+        id: generateId(),
+        file: processedFile,
+        preview,
+        category: activeCategory,
+        description: ''
+      })
+    }
     
     setUploadedFiles(prev => [...prev, ...newFiles])
+    setIsCompressing(false)
   }, [activeCategory])
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
