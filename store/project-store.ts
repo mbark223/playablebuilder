@@ -181,7 +181,13 @@ export const useProjectStore = create<ProjectStore>()(
       
       applyTemplate: (template) => {
         const { currentProject } = get()
-        if (!currentProject) return
+        if (!currentProject) {
+          console.error('No current project to apply template to')
+          return
+        }
+        
+        console.log('Applying template:', template.id, template.name)
+        console.log('Template config:', template.defaultConfig)
         
         const updatedProject = {
           ...currentProject,
@@ -191,10 +197,14 @@ export const useProjectStore = create<ProjectStore>()(
             reels: template.defaultConfig.reels,
             paylines: template.defaultConfig.paylines,
             features: template.defaultConfig.features,
-            math: template.defaultConfig.math
+            math: template.defaultConfig.math,
+            // Keep existing symbols
+            symbols: currentProject.config.symbols
           },
           modified: new Date()
         }
+        
+        console.log('Updated project config:', updatedProject.config)
         
         set((state) => ({
           currentProject: updatedProject,

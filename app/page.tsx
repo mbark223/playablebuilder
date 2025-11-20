@@ -15,6 +15,7 @@ const ExportDialog = dynamic(() => import('@/components/export-dialog'), { ssr: 
 const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uploader'), { ssr: false })
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
+import { getTemplateById } from '@/lib/templates/predefined-templates'
 
 export default function Home() {
   const [showProjectDialog, setShowProjectDialog] = useState(false)
@@ -194,7 +195,11 @@ export default function Home() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium">Template</label>
-                    <p className="text-sm text-muted-foreground">{currentProject.templateId || 'No template'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {currentProject.templateId ? 
+                        getTemplateById(currentProject.templateId)?.name || currentProject.templateId 
+                        : 'No template selected'}
+                    </p>
                   </div>
                   
                   <div>
