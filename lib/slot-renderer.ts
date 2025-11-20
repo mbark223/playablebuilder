@@ -21,10 +21,7 @@ export class SlotRenderer {
       antialias: true,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
-      backgroundColor: 0x000000,
-      preferWebGLVersion: 2,
-      powerPreference: 'default',
-      hello: false // Disable PIXI console message
+      backgroundColor: 0x000000
     })
     
     this.container = new PIXI.Container()
