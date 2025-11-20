@@ -103,7 +103,11 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'medium',
         hitFrequency: 25,
         maxWin: 5000,
-        demonstrationMode: true
+        demonstrationMode: {
+          guaranteedBigWin: true,
+          triggerTiming: 10,
+          winAmount: 'mega'
+        }
       },
       features: []
     },
@@ -219,7 +223,11 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'high',
         hitFrequency: 30,
         maxWin: 10000,
-        demonstrationMode: true
+        demonstrationMode: {
+          guaranteedBigWin: true,
+          triggerTiming: 10,
+          winAmount: 'mega'
+        }
       },
       features: []
     },
@@ -322,7 +330,11 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'medium',
         hitFrequency: 22,
         maxWin: 7500,
-        demonstrationMode: true
+        demonstrationMode: {
+          guaranteedBigWin: true,
+          triggerTiming: 10,
+          winAmount: 'mega'
+        }
       },
       features: [
         {
@@ -457,7 +469,11 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'very-high',
         hitFrequency: 20,
         maxWin: 50000,
-        demonstrationMode: true
+        demonstrationMode: {
+          guaranteedBigWin: true,
+          triggerTiming: 10,
+          winAmount: 'mega'
+        }
       },
       features: []
     },
@@ -569,7 +585,11 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'low',
         hitFrequency: 35,
         maxWin: 1000,
-        demonstrationMode: true
+        demonstrationMode: {
+          guaranteedBigWin: true,
+          triggerTiming: 10,
+          winAmount: 'mega'
+        }
       },
       features: []
     },
@@ -684,7 +704,11 @@ export const predefinedTemplates: PlayableTemplate[] = [
         volatility: 'medium',
         hitFrequency: 28,
         maxWin: 3000,
-        demonstrationMode: true
+        demonstrationMode: {
+          guaranteedBigWin: true,
+          triggerTiming: 10,
+          winAmount: 'mega'
+        }
       },
       features: []
     },
