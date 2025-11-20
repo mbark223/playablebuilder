@@ -25,10 +25,7 @@ export class SlotRenderer {
       autoDensity: true,
       backgroundColor: 0x000000,
       // Force canvas if WebGL fails
-      forceCanvas: false,
-      // Disable some features that might cause issues
-      sharedTicker: true,
-      sharedLoader: true
+      forceCanvas: false
     })
     
     this.container = new PIXI.Container()
