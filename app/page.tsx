@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useProjectStore } from '@/store/project-store'
 import { useStoreHydration } from '@/hooks/use-store-hydration'
 import { Button } from '@/components/ui/button'
-import { Upload, Download, Settings, Play, Plus, FolderOpen, Image as ImageIcon } from 'lucide-react'
+import { Upload, Download, Settings, Play, Plus, FolderOpen, Sparkles } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 // Dynamic imports to avoid SSR issues with canvas
@@ -14,12 +14,14 @@ const SymbolUploader = dynamic(() => import('@/components/symbol-uploader'), { s
 const ExportDialog = dynamic(() => import('@/components/export-dialog'), { ssr: false })
 const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uploader'), { ssr: false })
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
+const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
 
 export default function Home() {
   const [showProjectDialog, setShowProjectDialog] = useState(false)
   const [showSymbolUploader, setShowSymbolUploader] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showBrandAssetsUploader, setShowBrandAssetsUploader] = useState(false)
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
   
   const { currentProject, projects } = useProjectStore()
@@ -85,6 +87,16 @@ export default function Home() {
               <h2 className="font-semibold mb-4">Slot Elements</h2>
               
               <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setShowTemplateDialog(true)}
+                  disabled={!currentProject}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Choose Template
+                </Button>
+                
                 <Button
                   variant="outline"
                   className="w-full justify-start"
@@ -181,6 +193,11 @@ export default function Home() {
               {currentProject ? (
                 <div className="space-y-4">
                   <div>
+                    <label className="text-sm font-medium">Template</label>
+                    <p className="text-sm text-muted-foreground">{currentProject.templateId || 'No template'}</p>
+                  </div>
+                  
+                  <div>
                     <label className="text-sm font-medium">Layout</label>
                     <p className="text-sm text-muted-foreground">{currentProject.config.reels.layout}</p>
                   </div>
@@ -253,6 +270,13 @@ export default function Home() {
         <BrandAssetsUploader
           open={showBrandAssetsUploader}
           onOpenChange={setShowBrandAssetsUploader}
+        />
+      )}
+      
+      {showTemplateDialog && (
+        <TemplateSelectionDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
         />
       )}
     </div>

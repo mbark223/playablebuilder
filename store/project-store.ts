@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { SlotProject, Symbol, ReelConfiguration, PaylineConfig, FeatureTrigger, MathModel, BrandAsset } from '@/types'
+import type { PlayableTemplate } from '@/types/templates'
 
 interface ProjectStore {
   currentProject: SlotProject | null
@@ -8,9 +9,11 @@ interface ProjectStore {
   
   // Project actions
   createProject: (name: string, brand: string) => void
+  createProjectFromTemplate: (name: string, brand: string, template: PlayableTemplate) => void
   updateProject: (id: string, updates: Partial<SlotProject>) => void
   deleteProject: (id: string) => void
   setCurrentProject: (id: string) => void
+  applyTemplate: (template: PlayableTemplate) => void
   
   // Symbol actions  
   addSymbol: (symbol: Symbol) => void
@@ -89,6 +92,7 @@ export const useProjectStore = create<ProjectStore>()(
           brand,
           created: new Date(),
           modified: new Date(),
+          templateId: undefined,
           config: {
             reels: defaultReelConfig,
             symbols: [],
@@ -125,6 +129,78 @@ export const useProjectStore = create<ProjectStore>()(
         set((state) => ({
           projects: [...state.projects, newProject],
           currentProject: newProject
+        }))
+      },
+      
+      createProjectFromTemplate: (name, brand, template) => {
+        const newProject: SlotProject = {
+          id: Math.random().toString(36).substring(2),
+          name,
+          brand,
+          created: new Date(),
+          modified: new Date(),
+          templateId: template.id,
+          config: {
+            reels: template.defaultConfig.reels,
+            symbols: [],
+            paylines: template.defaultConfig.paylines,
+            features: template.defaultConfig.features,
+            math: template.defaultConfig.math
+          },
+          assets: {
+            backgrounds: [],
+            symbols: [],
+            frames: [],
+            animations: [],
+            audio: []
+          },
+          brandAssets: {
+            logos: [],
+            banners: [],
+            screenshots: [],
+            guidelines: [],
+            videos: []
+          },
+          interface: {
+            layout: 'classic',
+            theme: 'vegas',
+            buttons: [],
+            displays: []
+          },
+          exports: {
+            history: [],
+            presets: []
+          }
+        }
+        
+        set((state) => ({
+          projects: [...state.projects, newProject],
+          currentProject: newProject
+        }))
+      },
+      
+      applyTemplate: (template) => {
+        const { currentProject } = get()
+        if (!currentProject) return
+        
+        const updatedProject = {
+          ...currentProject,
+          templateId: template.id,
+          config: {
+            ...currentProject.config,
+            reels: template.defaultConfig.reels,
+            paylines: template.defaultConfig.paylines,
+            features: template.defaultConfig.features,
+            math: template.defaultConfig.math
+          },
+          modified: new Date()
+        }
+        
+        set((state) => ({
+          currentProject: updatedProject,
+          projects: state.projects.map(p => 
+            p.id === currentProject.id ? updatedProject : p
+          )
         }))
       },
       

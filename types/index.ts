@@ -78,6 +78,7 @@ export interface SlotProject {
   brand: string
   created: Date
   modified: Date
+  templateId?: string
   config: {
     reels: ReelConfiguration
     symbols: Symbol[]
