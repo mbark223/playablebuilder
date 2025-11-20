@@ -345,18 +345,12 @@ export const predefinedTemplates: PlayableTemplate[] = [
       },
       features: [
         {
-          id: 'free-spins',
-          type: 'free-spins',
-          name: 'Free Spins',
-          trigger: {
-            type: 'scatter',
-            count: 3
+          type: 'scatter',
+          requirement: {
+            scatterCount: 3
           },
-          config: {
-            spins: 10,
-            multiplier: 3,
-            retrigger: true
-          }
+          feature: 'freeSpins',
+          guarantee: false
         }
       ]
     },
