@@ -10,10 +10,10 @@ export function initializePixi() {
   // Set PIXI settings before any application is created
   if (PIXI.settings) {
     PIXI.settings.STRICT_TEXTURE_CACHE = false;
-    PIXI.settings.RENDER_OPTIONS = {
-      ...PIXI.settings.RENDER_OPTIONS,
-      hello: false,
-    };
+    // Disable the hello message
+    if (PIXI.settings.RENDER_OPTIONS) {
+      (PIXI.settings.RENDER_OPTIONS as any).hello = false;
+    }
   }
 
   // Override problematic WebGL checks
