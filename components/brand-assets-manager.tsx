@@ -50,9 +50,16 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
   const renderAssetGrid = (assets: BrandAsset[], category: BrandAsset['category']) => {
     if (assets.length === 0) {
       return (
-        <div className="text-center py-8 text-muted-foreground">
-          <p className="mb-2">No {category}s uploaded yet</p>
-          <Button size="sm" onClick={onUploadClick}>
+        <div className="text-center py-6 text-muted-foreground">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+            {category === 'logo' && <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+            {category === 'banner' && <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+            {category === 'screenshot' && <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+            {category === 'guideline' && <FileText className="h-6 w-6 text-muted-foreground" />}
+            {category === 'video' && <Video className="h-6 w-6 text-muted-foreground" />}
+          </div>
+          <p className="text-sm mb-2">No {category}s uploaded yet</p>
+          <Button size="sm" variant="outline" onClick={onUploadClick} className="h-7 text-xs">
             Upload {category}s
           </Button>
         </div>
@@ -60,10 +67,10 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
     }
     
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {assets.map(asset => (
-          <div key={asset.id} className="group relative bg-card rounded-lg border overflow-hidden">
-            <div className="aspect-video relative bg-muted">
+          <div key={asset.id} className="group relative bg-background rounded-lg border overflow-hidden hover:shadow-sm transition-shadow">
+            <div className="aspect-video relative bg-muted/50">
               {asset.type === 'image' && (
                 <img
                   src={asset.url}
@@ -92,39 +99,39 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
               )}
               
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="flex gap-1">
+                <div className="flex gap-1 bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-sm">
                   <Button
                     size="icon"
-                    variant="secondary"
-                    className="h-8 w-8"
+                    variant="ghost"
+                    className="h-6 w-6 hover:bg-muted"
                     onClick={() => setPreviewAsset(asset)}
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3 w-3" />
                   </Button>
                   {asset.type === 'document' && (
                     <Button
                       size="icon"
-                      variant="secondary"
-                      className="h-8 w-8"
+                      variant="ghost"
+                      className="h-6 w-6 hover:bg-muted"
                       onClick={() => window.open(asset.url, '_blank')}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3 w-3" />
                     </Button>
                   )}
                   <Button
                     size="icon"
-                    variant="destructive"
-                    className="h-8 w-8"
+                    variant="ghost"
+                    className="h-6 w-6 hover:bg-destructive hover:text-destructive-foreground"
                     onClick={() => removeBrandAsset(category, asset.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
             </div>
             
-            <div className="p-3">
-              <p className="text-sm font-medium truncate">{asset.name}</p>
+            <div className="p-2">
+              <p className="text-xs font-medium truncate" title={asset.name}>{asset.name}</p>
               {editingId === asset.id ? (
                 <div className="mt-1 flex gap-1">
                   <input
@@ -162,10 +169,13 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
                   </Button>
                 </div>
               )}
-              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                 <span>{formatFileSize(asset.size)}</span>
                 {asset.dimensions && (
-                  <span>{asset.dimensions.width}×{asset.dimensions.height}</span>
+                  <>
+                    <span>•</span>
+                    <span>{asset.dimensions.width}×{asset.dimensions.height}</span>
+                  </>
                 )}
               </div>
             </div>
@@ -178,29 +188,40 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
   return (
     <>
       <div className="bg-card rounded-lg p-4 border">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">Brand Assets</h2>
-          <Button size="sm" onClick={onUploadClick}>
-            Upload Assets
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold">Brand Assets</h2>
+          <Button size="sm" variant="outline" onClick={onUploadClick} className="h-7 text-xs">
+            <ImageIcon className="h-3 w-3 mr-1" />
+            Upload
           </Button>
         </div>
         
-        <Tabs defaultValue="logos">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="logos" className="text-xs">
-              Logos ({brandAssets.logos.length})
+        <Tabs defaultValue="logos" className="w-full">
+          <TabsList className="w-full h-auto p-1 flex flex-wrap">
+            <TabsTrigger value="logos" className="text-xs px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="hidden sm:inline">Logos</span>
+              <span className="sm:hidden">Logo</span>
+              <span className="ml-1 font-normal">({brandAssets.logos.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="banners" className="text-xs">
-              Banners ({brandAssets.banners.length})
+            <TabsTrigger value="banners" className="text-xs px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="hidden sm:inline">Banners</span>
+              <span className="sm:hidden">Banner</span>
+              <span className="ml-1 font-normal">({brandAssets.banners.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="screenshots" className="text-xs">
-              Screenshots ({brandAssets.screenshots.length})
+            <TabsTrigger value="screenshots" className="text-xs px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="hidden sm:inline">Screenshots</span>
+              <span className="sm:hidden">Screen</span>
+              <span className="ml-1 font-normal">({brandAssets.screenshots.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="guidelines" className="text-xs">
-              Guidelines ({brandAssets.guidelines.length})
+            <TabsTrigger value="guidelines" className="text-xs px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="hidden sm:inline">Guidelines</span>
+              <span className="sm:hidden">Guide</span>
+              <span className="ml-1 font-normal">({brandAssets.guidelines.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="videos" className="text-xs">
-              Videos ({brandAssets.videos.length})
+            <TabsTrigger value="videos" className="text-xs px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <span className="hidden sm:inline">Videos</span>
+              <span className="sm:hidden">Video</span>
+              <span className="ml-1 font-normal">({brandAssets.videos.length})</span>
             </TabsTrigger>
           </TabsList>
           
