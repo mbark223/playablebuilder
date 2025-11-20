@@ -59,13 +59,29 @@ export class SlotRenderer {
     }
   }
   
-  public loadSymbols(symbols: Symbol[]) {
-    symbols.forEach(symbol => {
-      const texture = PIXI.Texture.from(symbol.image)
-      this.symbols.set(symbol.id, texture)
-      this.symbolData.set(symbol.id, symbol)
-    })
+  public async loadSymbols(symbols: Symbol[]): Promise<void> {
+    // Clear existing symbols
+    this.symbols.clear()
+    this.symbolData.clear()
     
+    // Load all symbols
+    await Promise.all(
+      symbols.map(async (symbol) => {
+        try {
+          const texture = await PIXI.Assets.load(symbol.image)
+          this.symbols.set(symbol.id, texture)
+          this.symbolData.set(symbol.id, symbol)
+        } catch (err) {
+          console.warn(`Failed to load symbol ${symbol.name}:`, err)
+          // Create fallback texture
+          const texture = PIXI.Texture.from(symbol.image)
+          this.symbols.set(symbol.id, texture)
+          this.symbolData.set(symbol.id, symbol)
+        }
+      })
+    )
+    
+    // Update reels with new textures
     this.reels.forEach(reel => {
       reel.setTextures(this.symbols)
     })

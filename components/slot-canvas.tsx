@@ -23,7 +23,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
     if (!canvasRef.current) return
     
     // Small delay to ensure canvas is properly mounted
-    const initTimer = setTimeout(() => {
+    const initTimer = setTimeout(async () => {
       try {
         // Check WebGL support
         const testCanvas = document.createElement('canvas')
@@ -41,7 +41,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           
           // Load symbols
           if (project.config.symbols.length > 0) {
-            renderer.loadSymbols(project.config.symbols)
+            await renderer.loadSymbols(project.config.symbols)
             setIsReady(true)
           }
           
@@ -58,7 +58,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
             
             // Load symbols
             if (project.config.symbols.length > 0) {
-              simpleRenderer.loadSymbols(project.config.symbols)
+              await simpleRenderer.loadSymbols(project.config.symbols)
               setIsReady(true)
             }
             
