@@ -19,6 +19,7 @@ const MarketingKitImporter = dynamic(() => import('@/components/marketing-kit-im
 import { getTemplateById } from '@/lib/templates/predefined-templates'
 import { TemplateEditor } from '@/components/template-editor'
 import PlayableLayoutDesigner from '@/components/playable-layout-designer'
+import { StorageMonitor } from '@/components/storage-monitor'
 
 export default function Home() {
   const [showProjectDialog, setShowProjectDialog] = useState(false)
@@ -369,6 +370,8 @@ export default function Home() {
           onOpenChange={setShowTemplateDialog}
         />
       )}
+      
+      <StorageMonitor />
     </div>
   )
 }

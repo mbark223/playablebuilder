@@ -1,5 +1,6 @@
 import { create, type StoreApi } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { createHybridStorage } from '@/lib/storage/hybrid-storage'
 import type {
   SlotProject,
   Symbol,
@@ -1479,12 +1480,25 @@ export const useProjectStore = create<ProjectStore>()(
       name: 'playable-ad-projects',
       storage: createJSONStorage(() => {
         if (typeof window !== 'undefined') {
-          return localStorage
+          return {
+            getItem: async (name: string) => {
+              const storage = await createHybridStorage()
+              return storage.getItem(name)
+            },
+            setItem: async (name: string, value: string) => {
+              const storage = await createHybridStorage()
+              return storage.setItem(name, value)
+            },
+            removeItem: async (name: string) => {
+              const storage = await createHybridStorage()
+              return storage.removeItem(name)
+            }
+          }
         }
         return {
-          getItem: () => null,
-          setItem: () => {},
-          removeItem: () => {}
+          getItem: () => Promise.resolve(null),
+          setItem: () => Promise.resolve(),
+          removeItem: () => Promise.resolve()
         }
       }),
       skipHydration: true

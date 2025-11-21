@@ -24,45 +24,74 @@ if (typeof window !== 'undefined') {
       return true;
     };
   }
+  
+  // Ensure Canvas renderer is available
+  if (!(PIXI as any).CanvasRenderer && (PIXI as any).Renderer) {
+    (PIXI as any).CanvasRenderer = (PIXI as any).Renderer;
+  }
 }
 
 export function createPixiApp(options: CreatePixiAppOptions): PIXI.Application | null {
-  // First, let's try to create a simple canvas renderer directly
   try {
-    // Force Canvas2D renderer from the start
-    const app = new PIXI.Application({
-      view: options.view,
-      width: options.width,
-      height: options.height,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
-      backgroundColor: options.backgroundColor || 0x000000,
-      forceCanvas: true, // Always use Canvas
-      // Disable features that might cause issues
-      antialias: false,
-      preserveDrawingBuffer: false,
-      powerPreference: 'low-power'
-    });
+    // First check if we can create a 2D context on the canvas
+    const ctx = options.view.getContext('2d');
+    if (!ctx) {
+      console.error('Cannot create 2D context on canvas');
+      return null;
+    }
     
-    console.log('Successfully initialized Canvas renderer');
-    return app;
-  } catch (error) {
-    console.error('Canvas renderer initialization failed:', error);
+    // Clear the context to ensure it's clean
+    ctx.clearRect(0, 0, options.width, options.height);
     
-    // Try one more time with minimal options
+    // Try to create PIXI app with explicit Canvas renderer
     try {
+      // Force PIXI to use Canvas renderer by setting preference
+      if ((PIXI as any).settings) {
+        (PIXI as any).settings.PREFER_ENV = (PIXI as any).ENV?.CANVAS || 1;
+        (PIXI as any).settings.RENDER_OPTIONS = {
+          ...(PIXI as any).settings.RENDER_OPTIONS,
+          forceCanvas: true
+        };
+      }
+      
       const app = new PIXI.Application({
         view: options.view,
         width: options.width,
         height: options.height,
+        resolution: 1, // Fixed resolution to avoid scaling issues
+        autoDensity: false,
         backgroundColor: options.backgroundColor || 0x000000,
-        forceCanvas: true
-      });
+        forceCanvas: true,
+        antialias: false,
+        preserveDrawingBuffer: false,
+        powerPreference: 'low-power',
+        // Explicitly specify the renderer
+        ...(PIXI.VERSION.startsWith('7') ? { preferWebGLVersion: 0 } : {})
+      } as any);
       
+      console.log('Successfully initialized Canvas renderer');
       return app;
-    } catch (finalError) {
-      console.error('All renderer initialization attempts failed:', finalError);
-      return null;
+    } catch (pixiError) {
+      console.error('PIXI initialization failed:', pixiError);
+      
+      // Last resort: try with absolute minimal settings
+      try {
+        const minimalApp = new PIXI.Application({
+          view: options.view,
+          width: options.width,
+          height: options.height,
+          forceCanvas: true
+        } as any);
+        
+        console.log('Initialized with minimal settings');
+        return minimalApp;
+      } catch (minimalError) {
+        console.error('Minimal initialization also failed:', minimalError);
+        return null;
+      }
     }
+  } catch (error) {
+    console.error('Canvas setup failed:', error);
+    return null;
   }
 }

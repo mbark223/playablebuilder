@@ -25,13 +25,24 @@ interface UploadedFile {
   description: string
 }
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB per file
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024 // 50MB total
+const MAX_FILES_PER_CATEGORY = {
+  logo: 5,
+  banner: 10,
+  screenshot: 20,
+  guideline: 10,
+  video: 5
+}
+
 export default function BrandAssetsUploader({ open, onOpenChange }: BrandAssetsUploaderProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isCompressing, setIsCompressing] = useState(false)
   const [activeCategory, setActiveCategory] = useState<BrandAsset['category']>('logo')
-  const { addBrandAsset } = useProjectStore()
+  const [errors, setErrors] = useState<string[]>([])
+  const { addBrandAsset, currentProject } = useProjectStore()
   
   const acceptedFiles = {
     logo: {
@@ -55,10 +66,46 @@ export default function BrandAssetsUploader({ open, onOpenChange }: BrandAssetsU
   }
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setErrors([])
+    const newErrors: string[] = []
+    
+    // Check existing files in category
+    const existingCount = currentProject?.brandAssets?.[
+      activeCategory === 'logo' ? 'logos' :
+      activeCategory === 'banner' ? 'banners' :
+      activeCategory === 'screenshot' ? 'screenshots' :
+      activeCategory === 'guideline' ? 'guidelines' : 'videos'
+    ]?.length || 0
+    
+    const categoryFilesCount = uploadedFiles.filter(f => f.category === activeCategory).length
+    const totalInCategory = existingCount + categoryFilesCount + acceptedFiles.length
+    
+    if (totalInCategory > MAX_FILES_PER_CATEGORY[activeCategory]) {
+      newErrors.push(`Maximum ${MAX_FILES_PER_CATEGORY[activeCategory]} files allowed for ${activeCategory}`)
+      setErrors(newErrors)
+      return
+    }
+    
+    // Check total size
+    const currentTotalSize = uploadedFiles.reduce((sum, f) => sum + f.file.size, 0)
+    const newTotalSize = acceptedFiles.reduce((sum, f) => sum + f.size, 0)
+    
+    if (currentTotalSize + newTotalSize > MAX_TOTAL_SIZE) {
+      newErrors.push(`Total size would exceed ${formatFileSize(MAX_TOTAL_SIZE)} limit`)
+      setErrors(newErrors)
+      return
+    }
+    
     setIsCompressing(true)
     const newFiles: UploadedFile[] = []
     
     for (const file of acceptedFiles) {
+      // Check individual file size
+      if (file.size > MAX_FILE_SIZE) {
+        newErrors.push(`${file.name} exceeds ${formatFileSize(MAX_FILE_SIZE)} limit`)
+        continue
+      }
+      
       let processedFile = file
       let preview = ''
       
@@ -90,9 +137,13 @@ export default function BrandAssetsUploader({ open, onOpenChange }: BrandAssetsU
       })
     }
     
+    if (newErrors.length > 0) {
+      setErrors(newErrors)
+    }
+    
     setUploadedFiles(prev => [...prev, ...newFiles])
     setIsCompressing(false)
-  }, [activeCategory])
+  }, [activeCategory, uploadedFiles, currentProject])
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -247,8 +298,24 @@ export default function BrandAssetsUploader({ open, onOpenChange }: BrandAssetsU
                     {activeCategory === 'guideline' && 'PDF, DOC, DOCX, PNG, JPG'}
                     {activeCategory === 'video' && 'MP4, WebM, MOV, AVI'}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max {formatFileSize(MAX_FILE_SIZE)} per file • Max {MAX_FILES_PER_CATEGORY[activeCategory]} files
+                  </p>
                 </div>
               </div>
+              
+              {errors.length > 0 && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                  <div className="flex gap-2">
+                    <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      {errors.map((error, index) => (
+                        <p key={index} className="text-sm text-destructive">{error}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {uploadedFiles.length > 0 && (
                 <div className="space-y-2">

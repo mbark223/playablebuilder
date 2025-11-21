@@ -139,13 +139,11 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         style={{ aspectRatio }}
       />
       
-      {error && (
+      {error && error !== 'Using simplified renderer (some effects may be limited)' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80">
           <div className="text-white text-center">
             <p className="mb-2">{error}</p>
-            {!error.includes('Canvas mode') && (
-              <p className="text-sm text-gray-400">Try refreshing the page or using a different browser</p>
-            )}
+            <p className="text-sm text-gray-400">Try refreshing the page or using a different browser</p>
           </div>
         </div>
       )}
@@ -174,6 +172,12 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           style={{ background: slotAccent }}
         >
           {visuals.slotOverlayText}
+        </div>
+      )}
+      
+      {rendererType === 'simple' && (
+        <div className="absolute top-3 right-3 text-xs font-medium text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded">
+          Simplified Mode
         </div>
       )}
       

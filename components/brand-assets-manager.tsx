@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { FileText, Image as ImageIcon, Video, Download, Trash2, Edit2, Eye, X } from 'lucide-react'
 import { formatFileSize } from '@/lib/utils'
 import type { BrandAsset } from '@/types'
+import { LazyImage } from '@/lib/lazy-load-image'
 
 interface BrandAssetsManagerProps {
   onUploadClick: () => void
@@ -72,12 +73,13 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
           <div key={asset.id} className="group relative bg-background rounded-lg border overflow-hidden hover:shadow-sm transition-shadow">
             <div className="aspect-video relative bg-muted/50">
               {asset.type === 'image' && (
-                <img
-                  src={asset.url}
-                  alt={asset.name}
-                  className="w-full h-full object-contain cursor-pointer"
-                  onClick={() => setPreviewAsset(asset)}
-                />
+                <div onClick={() => setPreviewAsset(asset)} className="w-full h-full">
+                  <LazyImage
+                    src={asset.url}
+                    alt={asset.name}
+                    className="w-full h-full object-contain cursor-pointer"
+                  />
+                </div>
               )}
               {asset.type === 'video' && (
                 <div 
@@ -262,7 +264,7 @@ export default function BrandAssetsManager({ onUploadClick }: BrandAssetsManager
             </div>
             
             {previewAsset.type === 'image' && (
-              <img
+              <LazyImage
                 src={previewAsset.url}
                 alt={previewAsset.name}
                 className="max-w-full max-h-[80vh] object-contain"
