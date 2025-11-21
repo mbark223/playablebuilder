@@ -223,6 +223,7 @@ export interface CanvasElementBase {
   layer: number
   locked?: boolean
   visible?: boolean
+  templateRole?: string
 }
 
 export interface ImageCanvasElement extends CanvasElementBase {

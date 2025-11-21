@@ -190,12 +190,6 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         </button>
       )}
       
-      {/* Renderer status indicator */}
-      {rendererType === 'simple' && isReady && (
-        <div className="absolute top-2 left-2 bg-yellow-500/20 text-yellow-300 text-xs px-2 py-1 rounded">
-          Simplified Mode
-        </div>
-      )}
     </div>
   )
 }

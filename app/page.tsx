@@ -16,6 +16,7 @@ const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uplo
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
 import { getTemplateById } from '@/lib/templates/predefined-templates'
+import { TemplateEditor } from '@/components/template-editor'
 import PlayableLayoutDesigner from '@/components/playable-layout-designer'
 
 export default function Home() {
@@ -29,6 +30,7 @@ export default function Home() {
   const { currentProject, projects } = useProjectStore()
   useStoreHydration()
   const artboardSummary = currentProject?.canvas?.artboards ?? []
+  const activeTemplate = currentProject?.templateId ? getTemplateById(currentProject.templateId) : null
   
   useEffect(() => {
     if (!currentProject && projects.length === 0) {
@@ -195,14 +197,51 @@ export default function Home() {
               
               {currentProject ? (
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Template</label>
-                    <p className="text-sm text-muted-foreground">
-                      {currentProject.templateId ? 
-                        getTemplateById(currentProject.templateId)?.name || currentProject.templateId 
-                        : 'No template selected'}
-                    </p>
+                <div>
+                  <label className="text-sm font-medium">Template</label>
+                  <p className="text-sm text-muted-foreground">
+                    {currentProject.templateId ? 
+                      getTemplateById(currentProject.templateId)?.name || currentProject.templateId 
+                      : 'No template selected'}
+                  </p>
+                </div>
+                
+                {activeTemplate && (
+                  <div className="rounded-md border p-3 text-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Scenario</span>
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {activeTemplate.scenario.type.replace('-', ' ')}
+                      </span>
+                    </div>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {activeTemplate.scenario.steps.map((step, index) => (
+                        <div
+                          key={step.id}
+                          className="flex items-start gap-3 rounded-md bg-muted/60 px-2 py-1"
+                        >
+                          <div className="text-xs font-semibold text-primary mt-0.5">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium capitalize">{step.type.replace('-', ' ')}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {step.action.replace(/-/g, ' ')}
+                            </p>
+                          </div>
+                          {step.duration && (
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap mt-0.5">
+                              {step.duration}ms
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Offer: {activeTemplate.scenario.offer.content.headline}
+                    </div>
                   </div>
+                )}
                   
                   <div>
                     <label className="text-sm font-medium">Layout</label>
@@ -233,6 +272,8 @@ export default function Home() {
             {currentProject && (
               <BrandAssetsManager onUploadClick={() => setShowBrandAssetsUploader(true)} />
             )}
+            
+            {currentProject?.templateId && <TemplateEditor />}
             
             <div className="bg-card rounded-lg p-4 border">
               <h2 className="font-semibold mb-4">Export Stats</h2>

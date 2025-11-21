@@ -276,7 +276,8 @@ const createTemplateCTA = (
     borderWidth: 0,
     radius: height / 2,
     locked: false,
-    visible: true
+    visible: true,
+    templateRole: 'cta-button'
   }
   
   const label: CanvasElement = {
@@ -298,7 +299,8 @@ const createTemplateCTA = (
     letterSpacing: 0.5,
     autoWidth: false,
     locked: false,
-    visible: true
+    visible: true,
+    templateRole: 'cta'
   }
   
   return [button, label]
@@ -318,8 +320,14 @@ const applyTemplateVisualsToCanvas = (canvas: CanvasState, visuals: TemplateVisu
     const startingLayer = boardElements.reduce((max, el) => Math.max(max, el.layer), 0) + 1
     
     if (nonSlot.length === 0) {
-      const headline = createTemplateHeadline(board, visuals, startingLayer, 'headline', board.height * 0.08)
-      const body = createTemplateHeadline(board, visuals, startingLayer + 1, 'body', board.height * 0.08 + 110)
+      const headline = {
+        ...createTemplateHeadline(board, visuals, startingLayer, 'headline', board.height * 0.08),
+        templateRole: 'headline'
+      }
+      const body = {
+        ...createTemplateHeadline(board, visuals, startingLayer + 1, 'body', board.height * 0.08 + 110),
+        templateRole: 'body'
+      }
       const cta = createTemplateCTA(board, visuals, startingLayer + 2, board.height * 0.45)
       updatedElements = [...updatedElements, headline, body, ...cta]
     }
