@@ -10,24 +10,27 @@ export interface CreatePixiAppOptions {
 
 // Monkey patch PIXI to avoid the shader check error
 if (typeof window !== 'undefined') {
-  // Override the checkMaxIfStatementsInShader function that's causing issues
-  const pixiUtils = (PIXI as any).utils || (PIXI as any);
-  if (pixiUtils.checkMaxIfStatementsInShader) {
-    pixiUtils.checkMaxIfStatementsInShader = function() {
-      return true; // Always return true to bypass the check
-    };
+  try {
+    // Override the checkMaxIfStatementsInShader function that's causing issues
+    const pixiUtils = (PIXI as any).utils || (PIXI as any);
+    if (pixiUtils.checkMaxIfStatementsInShader) {
+      pixiUtils.checkMaxIfStatementsInShader = function() {
+        return true; // Always return true to bypass the check
+      };
+    }
+  } catch (e) {
+    // Ignore errors if PIXI is frozen in production
   }
   
   // Also try to patch it on the renderer utils
-  if ((PIXI as any).Renderer?.utils?.checkMaxIfStatementsInShader) {
-    (PIXI as any).Renderer.utils.checkMaxIfStatementsInShader = function() {
-      return true;
-    };
-  }
-  
-  // Ensure Canvas renderer is available
-  if (!(PIXI as any).CanvasRenderer && (PIXI as any).Renderer) {
-    (PIXI as any).CanvasRenderer = (PIXI as any).Renderer;
+  try {
+    if ((PIXI as any).Renderer?.utils?.checkMaxIfStatementsInShader) {
+      (PIXI as any).Renderer.utils.checkMaxIfStatementsInShader = function() {
+        return true;
+      };
+    }
+  } catch (e) {
+    // Ignore errors if object is not extensible
   }
 }
 

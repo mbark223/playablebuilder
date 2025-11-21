@@ -12,17 +12,22 @@ export function initializePixi() {
   }
 
   // Set PIXI settings before any application is created
-  if (PIXI.settings) {
-    PIXI.settings.STRICT_TEXTURE_CACHE = false;
-    // Force Canvas renderer preference
-    (PIXI.settings as any).PREFER_ENV = 1; // CANVAS
-    (PIXI.settings as any).FAIL_IF_MAJOR_PERFORMANCE_CAVEAT = false;
-    
-    // Disable the hello message
-    if (PIXI.settings.RENDER_OPTIONS) {
-      (PIXI.settings.RENDER_OPTIONS as any).hello = false;
-      (PIXI.settings.RENDER_OPTIONS as any).forceCanvas = true;
+  try {
+    if (PIXI.settings) {
+      PIXI.settings.STRICT_TEXTURE_CACHE = false;
+      // Force Canvas renderer preference
+      (PIXI.settings as any).PREFER_ENV = 1; // CANVAS
+      (PIXI.settings as any).FAIL_IF_MAJOR_PERFORMANCE_CAVEAT = false;
+      
+      // Disable the hello message
+      if (PIXI.settings.RENDER_OPTIONS) {
+        (PIXI.settings.RENDER_OPTIONS as any).hello = false;
+        (PIXI.settings.RENDER_OPTIONS as any).forceCanvas = true;
+      }
     }
+  } catch (e) {
+    // Ignore errors if PIXI settings are frozen in production
+    console.log('Could not modify PIXI settings:', e);
   }
 
   // Don't try to override autoDetectRenderer as it may be read-only in production
