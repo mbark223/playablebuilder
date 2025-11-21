@@ -33,15 +33,8 @@ if (typeof window !== 'undefined') {
 
 export function createPixiApp(options: CreatePixiAppOptions): PIXI.Application | null {
   try {
-    // First check if we can create a 2D context on the canvas
-    const ctx = options.view.getContext('2d');
-    if (!ctx) {
-      console.error('Cannot create 2D context on canvas');
-      return null;
-    }
-    
-    // Clear the context to ensure it's clean
-    ctx.clearRect(0, 0, options.width, options.height);
+    // Don't try to get 2D context first as it might conflict with PIXI
+    // Let PIXI handle the context creation
     
     // Try to create PIXI app with explicit Canvas renderer
     try {

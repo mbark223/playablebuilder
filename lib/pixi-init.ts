@@ -25,16 +25,8 @@ export function initializePixi() {
     }
   }
 
-  // Ensure autoDetectRenderer function exists and prefers Canvas
-  if (typeof window !== 'undefined' && (PIXI as any).autoDetectRenderer) {
-    const originalAutoDetect = (PIXI as any).autoDetectRenderer;
-    (PIXI as any).autoDetectRenderer = function(options: any) {
-      return originalAutoDetect({
-        ...options,
-        forceCanvas: true
-      });
-    };
-  }
+  // Don't try to override autoDetectRenderer as it may be read-only in production
+  // Instead rely on the settings we've already configured above
 }
 
 // Call initialization immediately
