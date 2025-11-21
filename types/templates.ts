@@ -13,8 +13,22 @@ export interface PlayableTemplate {
     math: MathModel
     features: FeatureTrigger[]
   }
+  visuals?: TemplateVisuals
   tags: string[]
   popularity: number
+}
+
+export interface TemplateVisuals {
+  background: string
+  accent: string
+  secondary: string
+  headline: string
+  body: string
+  cta: string
+  ctaColor: string
+  slotBackground: string
+  slotAccent: string
+  slotOverlayText?: string
 }
 
 export interface ScenarioConfig {

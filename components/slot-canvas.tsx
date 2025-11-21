@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SlotRenderer } from '@/lib/slot-renderer'
 import { SimpleSlotRenderer } from '@/lib/simple-slot-renderer'
 import type { SlotProject, SpinResult } from '@/types'
+import { getTemplateById } from '@/lib/templates/predefined-templates'
 
 interface SlotCanvasProps {
   project: SlotProject
@@ -118,12 +119,24 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
     performSpin()
   }, [isSpinning, isReady])
   
+  const template = project.templateId ? getTemplateById(project.templateId) : null
+  const visuals = template?.visuals
+  const [cols, rows] = project.config.reels.layout.split('x').map(Number)
+  const aspectRatio = `${cols}/${rows}`
+  const slotBackground = visuals?.slotBackground || '#000000'
+  const slotAccent = visuals?.slotAccent || '#eab308'
+  
   return (
-    <div className="relative bg-black rounded-lg overflow-hidden">
+    <div
+      className="relative rounded-lg overflow-hidden border border-border/50"
+      style={{
+        background: `radial-gradient(circle at top, ${slotBackground}, #020617 70%)`
+      }}
+    >
       <canvas
         ref={canvasRef}
         className="w-full h-full"
-        style={{ aspectRatio: '16/9' }}
+        style={{ aspectRatio }}
       />
       
       {error && (
@@ -153,6 +166,28 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           <p className="text-2xl font-bold">{lastResult.totalWin}x</p>
           <p className="text-xs text-gray-400">{lastResult.wins.length} lines</p>
         </div>
+      )}
+      
+      {visuals?.slotOverlayText && (
+        <div
+          className="pointer-events-none absolute top-3 left-3 text-xs font-medium uppercase tracking-wide px-3 py-1 rounded-full text-slate-900"
+          style={{ background: slotAccent }}
+        >
+          {visuals.slotOverlayText}
+        </div>
+      )}
+      
+      {visuals?.cta && (
+        <button
+          className="absolute bottom-4 right-4 text-xs font-semibold px-4 py-2 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{ background: visuals.accent || slotAccent, color: visuals.ctaColor || '#0f172a' }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onSpin()
+          }}
+        >
+          {visuals.cta}
+        </button>
       )}
       
       {/* Renderer status indicator */}

@@ -76,7 +76,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     },
     defaultConfig: {
       reels: {
-        layout: '5x3',
+        layout: '6x4',
         reelSets: {
           normal: [
             ['symbol1', 'symbol2', 'symbol3', 'symbol4', 'symbol5'],
@@ -112,6 +112,18 @@ export const predefinedTemplates: PlayableTemplate[] = [
         }
       },
       features: []
+    },
+    visuals: {
+      background: '#0f172a',
+      accent: '#f97316',
+      secondary: '#fb923c',
+      headline: 'Three spins to unlock mega rewards',
+      body: 'Showcase guaranteed excitement as players experience back-to-back spins.',
+      cta: 'Claim Free Spins',
+      ctaColor: '#0f172a',
+      slotBackground: '#020617',
+      slotAccent: '#f97316',
+      slotOverlayText: 'Triple Spin Showcase'
     },
     tags: ['beginner-friendly', 'quick-play', 'high-conversion'],
     popularity: 95
@@ -198,7 +210,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     },
     defaultConfig: {
       reels: {
-        layout: '5x3',
+        layout: '5x4',
         reelSets: {
           normal: [
             ['symbol1', 'symbol2', 'symbol3', 'symbol4', 'symbol5'],
@@ -234,6 +246,18 @@ export const predefinedTemplates: PlayableTemplate[] = [
         }
       },
       features: []
+    },
+    visuals: {
+      background: '#111827',
+      accent: '#22d3ee',
+      secondary: '#0ea5e9',
+      headline: 'Deliver a cinematic big win sequence',
+      body: 'Guide players through escalating wins ending with a celebration modal.',
+      cta: 'Continue Winning',
+      ctaColor: '#0c4a6e',
+      slotBackground: '#020617',
+      slotAccent: '#22d3ee',
+      slotOverlayText: 'Big Win Experience'
     },
     tags: ['exciting', 'guaranteed-win', 'high-energy'],
     popularity: 88
@@ -353,6 +377,18 @@ export const predefinedTemplates: PlayableTemplate[] = [
           guarantee: false
         }
       ]
+    },
+    visuals: {
+      background: '#09090b',
+      accent: '#a855f7',
+      secondary: '#f472b6',
+      headline: 'Tease the thrill of triggering free spins',
+      body: 'Use suspenseful scatters and bursts of color to push towards signup.',
+      cta: 'Start Free Spins',
+      ctaColor: '#fdf2f8',
+      slotBackground: '#150623',
+      slotAccent: '#e879f9',
+      slotOverlayText: 'Free Spins Teaser'
     },
     tags: ['bonus-focused', 'feature-rich', 'engaging'],
     popularity: 92
@@ -480,6 +516,18 @@ export const predefinedTemplates: PlayableTemplate[] = [
       },
       features: []
     },
+    visuals: {
+      background: '#0b1120',
+      accent: '#facc15',
+      secondary: '#f87171',
+      headline: 'Drive urgency with a climbing jackpot meter',
+      body: 'Use progress meters and near-miss effects to promote retention loops.',
+      cta: 'Chase the Jackpot',
+      ctaColor: '#111827',
+      slotBackground: '#030712',
+      slotAccent: '#facc15',
+      slotOverlayText: 'Jackpot Chase'
+    },
     tags: ['jackpot', 'high-stakes', 'long-term-engagement'],
     popularity: 85
   },
@@ -598,6 +646,18 @@ export const predefinedTemplates: PlayableTemplate[] = [
         }
       },
       features: []
+    },
+    visuals: {
+      background: '#0c0a09',
+      accent: '#fb7185',
+      secondary: '#fcd34d',
+      headline: 'Use countdown urgency to boost conversions',
+      body: 'Turbo spins plus a timer bar keep attention locked on the CTA.',
+      cta: 'Grab Turbo Spins',
+      ctaColor: '#111827',
+      slotBackground: '#1b0308',
+      slotAccent: '#fb7185',
+      slotOverlayText: 'Limited Time Rush'
     },
     tags: ['fast-paced', 'urgency', 'mobile-optimized'],
     popularity: 78
@@ -720,6 +780,18 @@ export const predefinedTemplates: PlayableTemplate[] = [
         }
       },
       features: []
+    },
+    visuals: {
+      background: '#0b1220',
+      accent: '#38bdf8',
+      secondary: '#fbbf24',
+      headline: 'Turn losing streaks into comeback moments',
+      body: 'Show a guided recovery path ending with a relief-focused CTA.',
+      cta: 'Activate Protection',
+      ctaColor: '#0f172a',
+      slotBackground: '#08111f',
+      slotAccent: '#38bdf8',
+      slotOverlayText: 'Second Chance Win'
     },
     tags: ['player-friendly', 'emotional', 'recovery-focused'],
     popularity: 72

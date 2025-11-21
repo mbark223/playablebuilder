@@ -16,7 +16,7 @@ import type {
   CanvasSettings,
   CanvasSnapshot
 } from '@/types'
-import type { PlayableTemplate } from '@/types/templates'
+import type { PlayableTemplate, TemplateVisuals } from '@/types/templates'
 import { generateId } from '@/lib/utils'
 
 interface ProjectStore {
@@ -214,6 +214,123 @@ const hydrateCanvasState = (canvas?: CanvasState): CanvasState => {
       ...(canvas.settings || {})
     },
     history: canvas.history ?? defaults.history
+  }
+}
+
+const createTemplateHeadline = (
+  artboard: Artboard,
+  visuals: TemplateVisuals,
+  layer: number,
+  variant: 'headline' | 'body',
+  positionY: number
+): CanvasElement => ({
+  id: generateId(),
+  name: variant === 'headline' ? 'Headline' : 'Body Copy',
+  type: 'text',
+  artboardId: artboard.id,
+  position: {
+    x: Math.round(artboard.width * 0.08),
+    y: Math.round(positionY)
+  },
+  size: {
+    width: Math.round(artboard.width * 0.84),
+    height: variant === 'headline' ? 200 : 160
+  },
+  rotation: 0,
+  opacity: 1,
+  layer,
+  text: variant === 'headline' ? visuals.headline : visuals.body,
+  fontSize: variant === 'headline' ? Math.max(42, Math.round(artboard.width * 0.05)) : 28,
+  fontWeight: variant === 'headline' ? 700 : 500,
+  color: variant === 'headline' ? '#ffffff' : '#e2e8f0',
+  textAlign: 'center',
+  lineHeight: variant === 'headline' ? 1.1 : 1.3,
+  letterSpacing: variant === 'headline' ? 0 : 0.5,
+  autoWidth: false,
+  locked: false,
+  visible: true
+})
+
+const createTemplateCTA = (
+  artboard: Artboard,
+  visuals: TemplateVisuals,
+  startingLayer: number,
+  offsetY: number
+): CanvasElement[] => {
+  const width = Math.min(420, artboard.width * 0.7)
+  const height = 72
+  const x = (artboard.width - width) / 2
+  const y = Math.min(artboard.height - height - 48, offsetY)
+  const button: CanvasElement = {
+    id: generateId(),
+    name: 'CTA Button',
+    type: 'shape',
+    artboardId: artboard.id,
+    position: { x: Math.round(x), y: Math.round(y) },
+    size: { width: Math.round(width), height },
+    rotation: 0,
+    opacity: 1,
+    layer: startingLayer,
+    fill: visuals.accent,
+    borderColor: visuals.secondary,
+    borderWidth: 0,
+    radius: height / 2,
+    locked: false,
+    visible: true
+  }
+  
+  const label: CanvasElement = {
+    id: generateId(),
+    name: 'CTA Label',
+    type: 'text',
+    artboardId: artboard.id,
+    position: { x: Math.round(x), y: Math.round(y + 20) },
+    size: { width: Math.round(width), height: 32 },
+    rotation: 0,
+    opacity: 1,
+    layer: startingLayer + 1,
+    text: visuals.cta,
+    fontSize: 20,
+    fontWeight: 700,
+    color: visuals.ctaColor || '#ffffff',
+    textAlign: 'center',
+    lineHeight: 1,
+    letterSpacing: 0.5,
+    autoWidth: false,
+    locked: false,
+    visible: true
+  }
+  
+  return [button, label]
+}
+
+const applyTemplateVisualsToCanvas = (canvas: CanvasState, visuals: TemplateVisuals): CanvasState => {
+  const baseCanvas = pushCanvasHistory(canvas)
+  let updatedElements = [...baseCanvas.elements]
+  const updatedArtboards = baseCanvas.artboards.map(board => ({
+    ...board,
+    background: visuals.background || board.background
+  }))
+  
+  updatedArtboards.forEach(board => {
+    const boardElements = updatedElements.filter(el => el.artboardId === board.id)
+    const nonSlot = boardElements.filter(el => el.type !== 'slot')
+    const startingLayer = boardElements.reduce((max, el) => Math.max(max, el.layer), 0) + 1
+    
+    if (nonSlot.length === 0) {
+      const headline = createTemplateHeadline(board, visuals, startingLayer, 'headline', board.height * 0.08)
+      const body = createTemplateHeadline(board, visuals, startingLayer + 1, 'body', board.height * 0.08 + 110)
+      const cta = createTemplateCTA(board, visuals, startingLayer + 2, board.height * 0.45)
+      updatedElements = [...updatedElements, headline, body, ...cta]
+    }
+  })
+  
+  return {
+    ...baseCanvas,
+    artboards: updatedArtboards,
+    elements: updatedElements,
+    selectedElementIds: [],
+    selectedElementId: null
   }
 }
 
@@ -434,31 +551,31 @@ export const useProjectStore = create<ProjectStore>()(
           console.error('No current project to apply template to')
           return
         }
-        
-        console.log('Applying template:', template.id, template.name)
-        console.log('Template config:', template.defaultConfig)
+        const hydratedProject = ensureCanvasOnProject(currentProject)
+        let canvas = hydratedProject.canvas
+        if (template.visuals) {
+          canvas = applyTemplateVisualsToCanvas(canvas, template.visuals)
+        }
         
         const updatedProject = {
-          ...currentProject,
+          ...hydratedProject,
           templateId: template.id,
           config: {
-            ...currentProject.config,
+            ...hydratedProject.config,
             reels: template.defaultConfig.reels,
             paylines: template.defaultConfig.paylines,
             features: template.defaultConfig.features,
             math: template.defaultConfig.math,
             // Keep existing symbols
-            symbols: currentProject.config.symbols
+            symbols: hydratedProject.config.symbols
           },
+          canvas,
           modified: new Date()
         }
-        
-        console.log('Updated project config:', updatedProject.config)
-        
         set((state) => ({
           currentProject: updatedProject,
           projects: state.projects.map(p => 
-            p.id === currentProject.id ? updatedProject : p
+            p.id === hydratedProject.id ? updatedProject : p
           )
         }))
       },
