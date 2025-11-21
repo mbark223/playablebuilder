@@ -15,6 +15,7 @@ const ExportDialog = dynamic(() => import('@/components/export-dialog'), { ssr: 
 const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uploader'), { ssr: false })
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
+const MarketingKitImporter = dynamic(() => import('@/components/marketing-kit-importer'), { ssr: false })
 import { getTemplateById } from '@/lib/templates/predefined-templates'
 import { TemplateEditor } from '@/components/template-editor'
 import PlayableLayoutDesigner from '@/components/playable-layout-designer'
@@ -25,6 +26,7 @@ export default function Home() {
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showBrandAssetsUploader, setShowBrandAssetsUploader] = useState(false)
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
+  const [showMarketingImporter, setShowMarketingImporter] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
   
   const { currentProject, projects } = useProjectStore()
@@ -100,6 +102,15 @@ export default function Home() {
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Choose Template
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setShowMarketingImporter(true)}
+                  disabled={!currentProject}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Marketing Kit
                 </Button>
                 
                 <Button
@@ -342,6 +353,13 @@ export default function Home() {
         <BrandAssetsUploader
           open={showBrandAssetsUploader}
           onOpenChange={setShowBrandAssetsUploader}
+        />
+      )}
+      
+      {showMarketingImporter && (
+        <MarketingKitImporter
+          open={showMarketingImporter}
+          onOpenChange={setShowMarketingImporter}
         />
       )}
       
