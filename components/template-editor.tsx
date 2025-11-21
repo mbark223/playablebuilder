@@ -25,11 +25,25 @@ export function TemplateEditor() {
   
   const canvas = canvasState ?? currentProject?.canvas
   
+  const artboardId = useMemo(() => {
+    return canvas?.selectedArtboardId ?? canvas?.artboards[0]?.id
+  }, [canvas])
+  
+  const templateElements = useMemo(() => {
+    const byRole: Record<string, CanvasElement | undefined> = {}
+    if (!canvas) return byRole
+    canvas.elements.forEach((element) => {
+      if (element.templateRole) {
+        byRole[element.templateRole] = element
+      }
+    })
+    return byRole
+  }, [canvas])
+  
   if (!currentProject?.templateId || !canvas) {
     return null
   }
   
-  const artboardId = canvas.selectedArtboardId ?? canvas.artboards[0]?.id
   if (!artboardId) {
     return (
       <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
@@ -37,16 +51,6 @@ export function TemplateEditor() {
       </div>
     )
   }
-  
-  const templateElements = useMemo(() => {
-    const byRole: Record<string, CanvasElement | undefined> = {}
-    canvas.elements.forEach((element) => {
-      if (element.templateRole) {
-        byRole[element.templateRole] = element
-      }
-    })
-    return byRole
-  }, [canvas.elements])
   
   const handleUpdateText = (role: string, value: string) => {
     const element = templateElements[role]
