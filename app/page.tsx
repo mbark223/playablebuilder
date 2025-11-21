@@ -16,6 +16,7 @@ const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uplo
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
 import { getTemplateById } from '@/lib/templates/predefined-templates'
+import PlayableLayoutDesigner from '@/components/playable-layout-designer'
 
 export default function Home() {
   const [showProjectDialog, setShowProjectDialog] = useState(false)
@@ -27,6 +28,7 @@ export default function Home() {
   
   const { currentProject, projects } = useProjectStore()
   useStoreHydration()
+  const artboardSummary = currentProject?.canvas?.artboards ?? []
   
   useEffect(() => {
     if (!currentProject && projects.length === 0) {
@@ -80,7 +82,7 @@ export default function Home() {
       </header>
       
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 space-y-10">
         <div className="grid grid-cols-12 gap-6">
           {/* Left Sidebar - Elements */}
           <div className="col-span-3 space-y-4">
@@ -247,6 +249,30 @@ export default function Home() {
             </div>
           </div>
         </div>
+        
+        {currentProject && (
+          <section className="bg-card border rounded-lg p-6 space-y-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Playable Layout Designer</h2>
+                <p className="text-sm text-muted-foreground">
+                  Drag brand assets, upload fonts, and work on multiple aspect ratios simultaneously.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Active sizes:</span>
+                <span className="font-medium">
+                  {artboardSummary.length > 0 ? artboardSummary.map(board => `${board.width}×${board.height}`).join(', ') : '—'}
+                </span>
+              </div>
+            </div>
+            <PlayableLayoutDesigner
+              project={currentProject}
+              isSpinning={isSpinning}
+              onRequestSpin={handleSpin}
+            />
+          </section>
+        )}
       </div>
       
       {/* Modals */}

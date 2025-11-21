@@ -7,6 +7,8 @@ export type ReelLayout = '3x3' | '5x3' | '5x4' | '5x5' | '6x4' | '7x7'
 export type PaylineType = 'fixed' | 'ways' | 'cluster' | 'megaways'
 export type FeatureType = 'freeSpins' | 'bonusGame' | 'picker' | 'wheel'
 export type Volatility = 'low' | 'medium' | 'high' | 'very-high'
+export type CanvasElementType = 'image' | 'text' | 'shape' | 'slot'
+export type TextAlign = 'left' | 'center' | 'right'
 
 export interface Symbol {
   id: string
@@ -106,6 +108,7 @@ export interface SlotProject {
     buttons: any[]
     displays: any[]
   }
+  canvas: CanvasState
   exports: {
     history: Export[]
     presets: ExportPreset[]
@@ -199,4 +202,108 @@ export interface SpinResult {
   wins: WinLine[]
   totalWin: number
   feature?: FeatureTrigger
+}
+
+export interface CanvasFont {
+  id: string
+  name: string
+  dataUrl: string
+  format: 'ttf' | 'otf' | 'woff' | 'woff2'
+}
+
+export interface CanvasElementBase {
+  id: string
+  name: string
+  type: CanvasElementType
+  artboardId: string
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  rotation: number
+  opacity: number
+  layer: number
+  locked?: boolean
+  visible?: boolean
+}
+
+export interface ImageCanvasElement extends CanvasElementBase {
+  type: 'image'
+  assetId?: string
+  src: string
+  fit: 'contain' | 'cover'
+  maintainAspect: boolean
+}
+
+export interface TextCanvasElement extends CanvasElementBase {
+  type: 'text'
+  text: string
+  fontId?: string
+  fontSize: number
+  fontWeight: number
+  color: string
+  textAlign: TextAlign
+  lineHeight: number
+  letterSpacing: number
+  autoWidth: boolean
+}
+
+export interface ShapeCanvasElement extends CanvasElementBase {
+  type: 'shape'
+  fill: string
+  borderColor: string
+  borderWidth: number
+  radius: number
+}
+
+export interface SlotCanvasElement extends CanvasElementBase {
+  type: 'slot'
+}
+
+export type CanvasElement =
+  | ImageCanvasElement
+  | TextCanvasElement
+  | ShapeCanvasElement
+  | SlotCanvasElement
+
+export type CanvasElementInput =
+  | Omit<ImageCanvasElement, 'id' | 'artboardId' | 'layer'>
+  | Omit<TextCanvasElement, 'id' | 'artboardId' | 'layer'>
+  | Omit<ShapeCanvasElement, 'id' | 'artboardId' | 'layer'>
+  | Omit<SlotCanvasElement, 'id' | 'artboardId' | 'layer'>
+
+export interface Artboard {
+  id: string
+  name: string
+  width: number
+  height: number
+  background: string
+}
+
+export interface CanvasState {
+  artboards: Artboard[]
+  fonts: CanvasFont[]
+  elements: CanvasElement[]
+  selectedArtboardId: string | null
+  selectedElementId: string | null
+  selectedElementIds: string[]
+  settings: CanvasSettings
+  history: CanvasHistory
+}
+
+export interface CanvasSettings {
+  snapToGrid: boolean
+  gridSize: number
+  showGuides: boolean
+  zoom: number
+}
+
+export interface CanvasSnapshot {
+  artboards: Artboard[]
+  elements: CanvasElement[]
+  selectedArtboardId: string | null
+  selectedElementIds: string[]
+}
+
+export interface CanvasHistory {
+  past: CanvasSnapshot[]
+  future: CanvasSnapshot[]
 }

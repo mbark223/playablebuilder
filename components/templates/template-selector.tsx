@@ -47,6 +47,14 @@ const categoryColors = {
   seasonal: 'bg-red-500'
 }
 
+const categoryGradients = {
+  engagement: 'from-blue-500/80 via-indigo-500/80 to-purple-500/80',
+  conversion: 'from-green-500/80 via-emerald-500/80 to-teal-500/80',
+  retention: 'from-violet-500/80 via-fuchsia-500/80 to-rose-500/80',
+  bonus: 'from-amber-500/80 via-orange-500/80 to-red-500/80',
+  seasonal: 'from-red-500/80 via-pink-500/80 to-purple-500/80'
+}
+
 export function TemplateSelector({ onSelectTemplate, currentTemplateId }: TemplateSelectorProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<PlayableTemplate | null>(null)
   const [showDetails, setShowDetails] = useState(false)
@@ -199,12 +207,28 @@ function TemplateGrid({ templates, currentTemplateId, onSelect }: TemplateGridPr
             whileTap={{ scale: 0.98 }}
           >
             <Card 
-              className={`p-4 cursor-pointer transition-all ${
+              className={`overflow-hidden cursor-pointer transition-all ${
                 isSelected ? 'ring-2 ring-primary' : 'hover:shadow-lg'
               }`}
               onClick={() => onSelect(template)}
             >
-              <div className="space-y-3">
+              <div className="relative h-36 w-full overflow-hidden">
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${categoryGradients[template.category]} opacity-80`}
+                />
+                <div
+                  className="absolute inset-0 bg-center bg-cover mix-blend-lighten opacity-70"
+                  style={{ backgroundImage: `url(${template.thumbnail})` }}
+                />
+                <div className="relative z-10 h-full w-full flex flex-col justify-between p-4 text-white">
+                  <p className="text-xs uppercase tracking-wide opacity-80">{template.scenario.type.replace('-', ' ')}</p>
+                  <div>
+                    <p className="text-sm font-medium">{template.scenario.offer.content.headline}</p>
+                    <p className="text-xs opacity-80">{template.scenario.offer.content.cta.text}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3 p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`p-2 rounded-md ${categoryColors[template.category]} text-white`}>
@@ -222,9 +246,16 @@ function TemplateGrid({ templates, currentTemplateId, onSelect }: TemplateGridPr
                   )}
                 </div>
                 
-                <p className="text-sm text-gray-600">
-                  {template.description}
-                </p>
+                <div>
+                  <p className="text-sm text-gray-700 mb-2">
+                    {template.description}
+                  </p>
+                  <div className="flex items-center text-xs text-gray-500 gap-3">
+                    <span>{template.scenario.steps.length} steps</span>
+                    <span>•</span>
+                    <span>{template.popularity}% popularity</span>
+                  </div>
+                </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">
@@ -234,18 +265,31 @@ function TemplateGrid({ templates, currentTemplateId, onSelect }: TemplateGridPr
                       </Badge>
                     ))}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelect(template)
-                    }}
-                  >
-                    <Info className="w-3 h-3 mr-1" />
-                    Details
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelect(template)
+                      }}
+                    >
+                      <Info className="w-3 h-3 mr-1" />
+                      Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelect(template)
+                      }}
+                    >
+                      Use Template
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>
