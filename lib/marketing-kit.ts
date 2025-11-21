@@ -27,7 +27,40 @@ const pushElementToBack = (elementId: string) => {
   }
 }
 
-export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateId?: string) => {
+const optimizeImageDataUrl = async (
+  dataUrl?: string,
+  options: { maxWidth?: number; maxHeight?: number; quality?: number } = {}
+): Promise<string | undefined> => {
+  if (!dataUrl || !dataUrl.startsWith('data:image')) return dataUrl
+  const maxWidth = options.maxWidth ?? 1440
+  const maxHeight = options.maxHeight ?? 2560
+  const quality = options.quality ?? 0.85
+  
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1)
+      if (scale >= 1 && dataUrl.length <= 1_000_000) {
+        resolve(dataUrl)
+        return
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(img.width * scale))
+      canvas.height = Math.max(1, Math.round(img.height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(dataUrl)
+        return
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/webp', quality))
+    }
+    img.onerror = () => resolve(dataUrl)
+    img.src = dataUrl
+  })
+}
+
+export const applyMarketingKitSummary = async (summary: MarketingKitSummary, templateId?: string) => {
   const store = useProjectStore.getState()
   const template = templateId ? getTemplateById(templateId) : predefinedTemplates[0]
   if (template) {
@@ -59,7 +92,11 @@ export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateI
     store.updateCanvasElement(templateElements.cta.id, { text: summary.cta })
   }
   
-  if (summary.background) {
+  const optimizedBackground = await optimizeImageDataUrl(summary.background)
+  const optimizedHero = await optimizeImageDataUrl(summary.hero, { maxWidth: 2048, maxHeight: 2048, quality: 0.8 })
+  const optimizedLogo = await optimizeImageDataUrl(summary.logo, { maxWidth: 800, maxHeight: 800, quality: 0.9 })
+  
+  if (optimizedBackground) {
     const backgroundId = generateId()
     store.addCanvasElement(artboard.id, {
       id: backgroundId,
@@ -69,7 +106,7 @@ export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateI
       size: { width: artboard.width, height: artboard.height },
       rotation: 0,
       opacity: 1,
-      src: summary.background,
+      src: optimizedBackground,
       fit: 'cover',
       maintainAspect: true,
       locked: true,
@@ -79,7 +116,7 @@ export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateI
     pushElementToBack(backgroundId)
   }
   
-  if (summary.hero) {
+  if (optimizedHero) {
     store.addCanvasElement(artboard.id, {
       name: 'Hero Image',
       type: 'image',
@@ -93,7 +130,7 @@ export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateI
       },
       rotation: 0,
       opacity: 1,
-      src: summary.hero,
+      src: optimizedHero,
       fit: 'contain',
       maintainAspect: true,
       locked: false,
@@ -102,7 +139,7 @@ export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateI
     })
   }
   
-  if (summary.logo) {
+  if (optimizedLogo) {
     store.addCanvasElement(artboard.id, {
       name: 'Logo',
       type: 'image',
@@ -116,7 +153,7 @@ export const applyMarketingKitSummary = (summary: MarketingKitSummary, templateI
       },
       rotation: 0,
       opacity: 1,
-      src: summary.logo,
+      src: optimizedLogo,
       fit: 'contain',
       maintainAspect: true,
       locked: false,
