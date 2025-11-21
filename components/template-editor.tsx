@@ -31,13 +31,11 @@ export function TemplateEditor() {
   
   const artboardId = canvas.selectedArtboardId ?? canvas.artboards[0]?.id
   if (!artboardId) {
-    addArtboard({
-      name: 'Custom Size',
-      width: 1080,
-      height: 1920,
-      background: '#050505'
-    })
-    return null
+    return (
+      <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+        Add an artboard to start editing template text.
+      </div>
+    )
   }
   
   const templateElements = useMemo(() => {
