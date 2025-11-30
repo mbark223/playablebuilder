@@ -39,6 +39,8 @@ import type {
   SlotProject,
   TextAlign
 } from '@/types'
+import { ArtboardSwitcher } from './artboard-switcher'
+import { useSynchronizedEditing } from '@/hooks/use-synchronized-editing'
 
 const SlotCanvas = dynamic(() => import('@/components/slot-canvas'), { ssr: false })
 
@@ -92,6 +94,14 @@ export default function PlayableLayoutDesigner({ project, isSpinning, onRequestS
   undoCanvas,
   redoCanvas
 } = useProjectStore()
+  
+  const {
+    updateElement: updateElementSynced,
+    updateMultipleElements: updateMultipleElementsSynced,
+    deleteElements: deleteElementsSynced,
+    toggleSynchronizedEditing,
+    isSynchronized
+  } = useSynchronizedEditing()
   
   const canvasState = useMemo<DesignerCanvasState>(() => {
     if (project.canvas && Array.isArray(project.canvas.artboards) && Array.isArray(project.canvas.elements)) {
@@ -421,6 +431,15 @@ export default function PlayableLayoutDesigner({ project, isSpinning, onRequestS
   
   return (
     <div className="space-y-4">
+      {canvasState.artboards.length > 1 && (
+        <ArtboardSwitcher
+          artboards={canvasState.artboards}
+          selectedArtboardId={selectedArtboardId}
+          onSelectArtboard={setActiveArtboard}
+          synchronizedEditing={isSynchronized}
+          onToggleSynchronized={toggleSynchronizedEditing}
+        />
+      )}
       <DesignerToolbar
         hasArtboard={Boolean(selectedArtboard)}
         onAddHeadline={handleAddHeadline}

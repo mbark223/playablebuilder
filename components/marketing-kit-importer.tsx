@@ -12,8 +12,10 @@ import { applyMarketingKitSummary, type MarketingKitSummary } from '@/lib/market
 import { predefinedTemplates } from '@/lib/templates/predefined-templates'
 
 interface MarketingKitImporterProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onImport?: (summary: MarketingKitSummary) => void
+  hideTemplateSelector?: boolean
 }
 
 type KitAsset = {
@@ -74,7 +76,7 @@ const summarizeAssets = (assets: KitAsset[]): MarketingKitSummary => {
   }
 }
 
-export default function MarketingKitImporter({ open, onOpenChange }: MarketingKitImporterProps) {
+export default function MarketingKitImporter({ open, onOpenChange, onImport, hideTemplateSelector }: MarketingKitImporterProps) {
   const [assets, setAssets] = useState<KitAsset[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState(predefinedTemplates[0]?.id ?? '')
@@ -160,9 +162,16 @@ export default function MarketingKitImporter({ open, onOpenChange }: MarketingKi
     if (assets.length === 0) return
     setIsProcessing(true)
     try {
-      await applyMarketingKitSummary(summary, selectedTemplate)
-      setAssets([])
-      onOpenChange(false)
+      if (onImport) {
+        // Just return the summary for external handling
+        onImport(summary)
+        setAssets([])
+      } else {
+        // Apply directly to the project
+        await applyMarketingKitSummary(summary, selectedTemplate)
+        setAssets([])
+        onOpenChange?.(false)
+      }
     } finally {
       setIsProcessing(false)
     }
@@ -257,7 +266,7 @@ export default function MarketingKitImporter({ open, onOpenChange }: MarketingKi
             Drop your full kit (images + copy). We’ll map logos, backgrounds, and headlines automatically.
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setAssets([]); onOpenChange(false) }}>
+            <Button variant="outline" onClick={() => { setAssets([]); onOpenChange?.(false) }}>
               Cancel
             </Button>
             <Button

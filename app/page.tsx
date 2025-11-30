@@ -16,6 +16,7 @@ const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uplo
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
 const MarketingKitImporter = dynamic(() => import('@/components/marketing-kit-importer'), { ssr: false })
+const MarketingKitWorkflow = dynamic(() => import('@/components/marketing-kit-workflow').then(mod => ({ default: mod.MarketingKitWorkflow })), { ssr: false })
 import { getTemplateById } from '@/lib/templates/predefined-templates'
 import { TemplateEditor } from '@/components/template-editor'
 import PlayableLayoutDesigner from '@/components/playable-layout-designer'
@@ -28,6 +29,7 @@ export default function Home() {
   const [showBrandAssetsUploader, setShowBrandAssetsUploader] = useState(false)
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
   const [showMarketingImporter, setShowMarketingImporter] = useState(false)
+  const [showMarketingWorkflow, setShowMarketingWorkflow] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
   
   const { currentProject, projects } = useProjectStore()
@@ -112,6 +114,16 @@ export default function Home() {
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Import Marketing Kit
+                </Button>
+                
+                <Button
+                  variant="default"
+                  className="w-full justify-start"
+                  onClick={() => setShowMarketingWorkflow(true)}
+                  disabled={!currentProject}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Auto-Generate Playables
                 </Button>
                 
                 <Button
@@ -362,6 +374,16 @@ export default function Home() {
           open={showMarketingImporter}
           onOpenChange={setShowMarketingImporter}
         />
+      )}
+      
+      {showMarketingWorkflow && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <MarketingKitWorkflow 
+              onComplete={() => setShowMarketingWorkflow(false)}
+            />
+          </div>
+        </div>
       )}
       
       {showTemplateDialog && (

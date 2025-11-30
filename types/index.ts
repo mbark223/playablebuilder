@@ -224,6 +224,7 @@ export interface CanvasElementBase {
   locked?: boolean
   visible?: boolean
   templateRole?: string
+  syncGroup?: string
 }
 
 export interface ImageCanvasElement extends CanvasElementBase {
@@ -288,6 +289,7 @@ export interface CanvasState {
   selectedElementIds: string[]
   settings: CanvasSettings
   history: CanvasHistory
+  synchronizedEditing?: boolean
 }
 
 export interface CanvasSettings {
