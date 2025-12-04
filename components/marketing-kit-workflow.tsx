@@ -168,7 +168,7 @@ function MarketingKitDropzone({ onImport }: { onImport: (summary: MarketingKitSu
       
       {assets.length > 0 && (
         <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-          <p className="text-sm font-medium mb-2">Imported {assets.length} files</p>
+          <p className="text-sm font-medium mb-2">Successfully imported {assets.length} files</p>
           <div className="grid grid-cols-2 gap-2">
             {assets.slice(0, 4).map(asset => (
               <div key={asset.id} className="text-xs truncate">
