@@ -274,14 +274,15 @@ export async function generatePlayableVariations(
     });
   }
 
-  // Add slot gameplay element
-  masterElements.set('slot', {
-    id: `master_slot_${nanoid()}`,
-    type: 'slot',
-    name: 'Slot Game',
-    layer: 10,
-    syncGroup: 'slot',
-  });
+  // Add slot gameplay element - temporarily disabled to avoid PIXI issues
+  // TODO: Re-enable after fixing PIXI initialization in production
+  // masterElements.set('slot', {
+  //   id: `master_slot_${nanoid()}`,
+  //   type: 'slot',
+  //   name: 'Slot Game',
+  //   layer: 10,
+  //   syncGroup: 'slot',
+  // });
 
   // Generate artboards and elements for each size
   for (const size of sizes) {

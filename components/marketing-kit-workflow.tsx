@@ -268,15 +268,18 @@ export function MarketingKitWorkflow({ onComplete }: MarketingKitWorkflowProps) 
       );
 
       // Update project with generated variations
-      if (currentProject) {
+      if (currentProject && variations.artboards.length > 0) {
+        // Create a new canvas state to avoid reference issues
+        const newCanvas = {
+          ...currentProject.canvas,
+          artboards: [...variations.artboards],
+          elements: [...variations.elements],
+          selectedArtboardId: variations.artboards[0]?.id || null,
+          synchronizedEditing: true, // Enable synchronized editing by default
+        };
+        
         updateProject(currentProject.id, {
-          canvas: {
-            ...currentProject.canvas,
-            artboards: variations.artboards,
-            elements: variations.elements,
-            selectedArtboardId: variations.artboards[0]?.id || null,
-            synchronizedEditing: true, // Enable synchronized editing by default
-          }
+          canvas: newCanvas
         });
       }
 
