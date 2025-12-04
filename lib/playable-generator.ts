@@ -136,9 +136,9 @@ function createElementForArtboard(
         position: { x, y },
         size: { width, height },
         fill: baseElement.fill || '#007AFF',
-        borderColor: 'transparent',
-        borderWidth: 0,
-        radius: baseElement.cornerRadius || 40,
+        borderColor: baseElement.borderColor || 'transparent',
+        borderWidth: baseElement.borderWidth || 0,
+        radius: baseElement.radius || 40,
       } as ShapeCanvasElement;
       break;
     }
@@ -248,9 +248,10 @@ export async function generatePlayableVariations(
     id: `master_cta_${nanoid()}`,
     type: 'shape',
     name: 'CTA Button',
-    shape: 'rectangle',
     fill: '#007AFF',
-    cornerRadius: 40,
+    borderColor: 'transparent',
+    borderWidth: 0,
+    radius: 40,
     layer: 4,
     syncGroup: 'cta',
   });
