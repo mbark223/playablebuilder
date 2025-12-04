@@ -307,7 +307,7 @@ export async function generatePlayableVariations(
         name: `${size.width}×${size.height} - ${variation.name}`,
         width: size.width,
         height: size.height,
-        backgroundColor: '#FFFFFF',
+        background: '#FFFFFF',
       };
       artboards.push(artboard);
 
