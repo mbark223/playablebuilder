@@ -1,25 +1,30 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useProjectStore } from '@/store/project-store';
 import { CanvasElement } from '@/types';
 
 export function useSynchronizedEditing() {
   const { currentProject, updateProject, updateCanvasElement } = useProjectStore();
   
-  const canvasState = currentProject?.canvas || {
-    artboards: [],
-    elements: [],
-    selectedArtboardId: null,
-    selectedElementId: null,
-    selectedElementIds: [],
-    fonts: [],
-    settings: { snapToGrid: true, gridSize: 10, showGuides: true, zoom: 1 },
-    history: { past: [], future: [] },
-    synchronizedEditing: false
-  };
-  
-  const { elements, synchronizedEditing } = canvasState;
+  // Use a ref to store the latest values without causing re-renders
+  const stateRef = useRef({
+    currentProject,
+    canvasState: currentProject?.canvas,
+  });
+
+  // Update the ref when values change
+  useEffect(() => {
+    stateRef.current = {
+      currentProject,
+      canvasState: currentProject?.canvas,
+    };
+  }, [currentProject]);
 
   const updateElement = useCallback((elementId: string, updates: Partial<CanvasElement>) => {
+    const { currentProject, canvasState } = stateRef.current;
+    if (!currentProject || !canvasState) return;
+
+    const { elements, synchronizedEditing } = canvasState;
+
     if (!synchronizedEditing) {
       // Normal single element update using existing store method
       updateCanvasElement(elementId, updates);
@@ -97,31 +102,32 @@ export function useSynchronizedEditing() {
     }) as CanvasElement[];
 
     // Update the entire canvas with new elements
-    if (currentProject) {
-      updateProject(currentProject.id, {
-        canvas: {
-          ...canvasState,
-          elements: updatedElements,
-        }
-      });
-    }
-  }, [canvasState, elements, synchronizedEditing, updateCanvasElement, currentProject, updateProject]);
+    updateProject(currentProject.id, {
+      canvas: {
+        ...canvasState,
+        elements: updatedElements,
+      }
+    });
+  }, [updateCanvasElement, updateProject]);
 
   const updateMultipleElements = useCallback((elementIds: string[], updates: Partial<CanvasElement>) => {
+    const { currentProject, canvasState } = stateRef.current;
+    if (!currentProject || !canvasState) return;
+
+    const { elements, synchronizedEditing } = canvasState;
+
     if (!synchronizedEditing) {
       // Normal multiple element update
       const updatedElements = elements.map(el => 
         elementIds.includes(el.id) ? { ...el, ...updates } as CanvasElement : el
       ) as CanvasElement[];
       
-      if (currentProject) {
-        updateProject(currentProject.id, {
-          canvas: {
-            ...canvasState,
-            elements: updatedElements,
-          }
-        });
-      }
+      updateProject(currentProject.id, {
+        canvas: {
+          ...canvasState,
+          elements: updatedElements,
+        }
+      });
       return;
     }
 
@@ -147,29 +153,30 @@ export function useSynchronizedEditing() {
       return el;
     }) as CanvasElement[];
 
-    if (currentProject) {
-      updateProject(currentProject.id, {
-        canvas: {
-          ...canvasState,
-          elements: updatedElements,
-        }
-      });
-    }
-  }, [canvasState, elements, synchronizedEditing, currentProject, updateProject]);
+    updateProject(currentProject.id, {
+      canvas: {
+        ...canvasState,
+        elements: updatedElements,
+      }
+    });
+  }, [updateProject]);
 
   const deleteElements = useCallback((elementIds: string[]) => {
+    const { currentProject, canvasState } = stateRef.current;
+    if (!currentProject || !canvasState) return;
+
+    const { elements, synchronizedEditing } = canvasState;
+
     if (!synchronizedEditing) {
       // Normal deletion
       const remainingElements = elements.filter(el => !elementIds.includes(el.id));
       
-      if (currentProject) {
-        updateProject(currentProject.id, {
-          canvas: {
-            ...canvasState,
-            elements: remainingElements,
-          }
-        });
-      }
+      updateProject(currentProject.id, {
+        canvas: {
+          ...canvasState,
+          elements: remainingElements,
+        }
+      });
       return;
     }
 
@@ -193,32 +200,31 @@ export function useSynchronizedEditing() {
       return true; // Keep element
     });
 
-    if (currentProject) {
-      updateProject(currentProject.id, {
-        canvas: {
-          ...canvasState,
-          elements: remainingElements,
-        }
-      });
-    }
-  }, [canvasState, elements, synchronizedEditing, currentProject, updateProject]);
+    updateProject(currentProject.id, {
+      canvas: {
+        ...canvasState,
+        elements: remainingElements,
+      }
+    });
+  }, [updateProject]);
 
   const toggleSynchronizedEditing = useCallback(() => {
-    if (currentProject) {
-      updateProject(currentProject.id, {
-        canvas: {
-          ...canvasState,
-          synchronizedEditing: !synchronizedEditing,
-        }
-      });
-    }
-  }, [canvasState, synchronizedEditing, currentProject, updateProject]);
+    const { currentProject, canvasState } = stateRef.current;
+    if (!currentProject || !canvasState) return;
+
+    updateProject(currentProject.id, {
+      canvas: {
+        ...canvasState,
+        synchronizedEditing: !canvasState.synchronizedEditing,
+      }
+    });
+  }, [updateProject]);
 
   return {
     updateElement,
     updateMultipleElements,
     deleteElements,
     toggleSynchronizedEditing,
-    isSynchronized: synchronizedEditing || false,
+    isSynchronized: currentProject?.canvas?.synchronizedEditing || false,
   };
 }
