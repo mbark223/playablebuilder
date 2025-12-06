@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { SlotRenderer } from '@/lib/slot-renderer'
 import { SimpleSlotRenderer } from '@/lib/simple-slot-renderer'
 import type { SlotProject, SpinResult } from '@/types'
@@ -19,8 +19,19 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
   const [lastResult, setLastResult] = useState<SpinResult | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [isLoadingSymbols, setIsLoadingSymbols] = useState(false)
+  const [previewProgress, setPreviewProgress] = useState(0)
+  const [showProgressInfo, setShowProgressInfo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rendererType, setRendererType] = useState<'pixi' | 'simple'>('pixi')
+  
+  const handleSymbolProgress = useCallback((loaded: number, total: number) => {
+    if (total === 0) {
+      setPreviewProgress(100)
+      return
+    }
+    const percent = Math.round((loaded / total) * 100)
+    setPreviewProgress(percent)
+  }, [])
   
   useEffect(() => {
     if (!canvasRef.current) return
@@ -33,14 +44,19 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         rendererRef.current = simpleRenderer
         setRendererType('simple')
         setIsReady(true)
+        setPreviewProgress(project.config.symbols.length > 0 ? 0 : 100)
         
         if (project.config.symbols.length > 0) {
           setIsLoadingSymbols(true)
+          setPreviewProgress(0)
           try {
-            await simpleRenderer.loadSymbols(project.config.symbols)
+            await simpleRenderer.loadSymbols(project.config.symbols, handleSymbolProgress)
           } finally {
             setIsLoadingSymbols(false)
+            setPreviewProgress(100)
           }
+        } else {
+          setPreviewProgress(100)
         }
         
         setError(SIMPLE_RENDERER_MESSAGE)
@@ -68,15 +84,20 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           rendererRef.current = renderer
           setRendererType('pixi')
           setIsReady(true)
+          setPreviewProgress(project.config.symbols.length > 0 ? 0 : 100)
           
           // Load symbols
           if (project.config.symbols.length > 0) {
             setIsLoadingSymbols(true)
+            setPreviewProgress(0)
             try {
-              await renderer.loadSymbols(project.config.symbols)
+              await renderer.loadSymbols(project.config.symbols, handleSymbolProgress)
             } finally {
               setIsLoadingSymbols(false)
+              setPreviewProgress(100)
             }
+          } else {
+            setPreviewProgress(100)
           }
           
           setError(null)
@@ -87,6 +108,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
       } catch (err) {
         console.error('Failed to initialize slot renderer:', err)
         setError('Failed to initialize graphics renderer')
+        setPreviewProgress(0)
       }
     }, 100)
     
@@ -110,9 +132,11 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
     // Update symbols
     if (project.config.symbols.length > 0) {
       setIsLoadingSymbols(true)
-      rendererRef.current.loadSymbols(project.config.symbols).then(() => {
+      setPreviewProgress(0)
+      rendererRef.current.loadSymbols(project.config.symbols, handleSymbolProgress).then(() => {
         setIsReady(true)
         setIsLoadingSymbols(false)
+        setPreviewProgress(100)
       }).catch((err) => {
         console.error('Failed to load symbols:', err)
         // Still set ready for simple renderer
@@ -120,12 +144,14 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           setIsReady(true)
         }
         setIsLoadingSymbols(false)
+        setPreviewProgress(0)
       })
     } else {
       setIsReady(false)
       setIsLoadingSymbols(false)
+      setPreviewProgress(100)
     }
-  }, [project.config.symbols, rendererType])
+  }, [project.config.symbols, rendererType, handleSymbolProgress])
   
   useEffect(() => {
     if (!rendererRef.current || !isSpinning || !isReady) return
@@ -188,6 +214,20 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           Loading symbols…
         </div>
       )}
+      
+      <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+        <button
+          className="text-xs font-medium px-3 py-1 rounded bg-black/70 text-white hover:bg-black/80 transition-colors"
+          onClick={() => setShowProgressInfo(prev => !prev)}
+        >
+          {showProgressInfo ? 'Hide Preview Progress' : 'Show Preview Progress'}
+        </button>
+        {showProgressInfo && (
+          <div className="text-xs text-white bg-black/70 px-3 py-1 rounded">
+            Preview {Math.min(100, Math.max(0, Math.round(previewProgress)))}% complete
+          </div>
+        )}
+      </div>
       
       {lastResult && lastResult.wins.length > 0 && (
         <div className="absolute top-4 right-4 bg-black/80 text-white p-4 rounded-lg">

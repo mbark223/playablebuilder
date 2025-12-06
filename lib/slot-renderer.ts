@@ -59,10 +59,17 @@ export class SlotRenderer {
     }
   }
   
-  public async loadSymbols(symbols: Symbol[]): Promise<void> {
+  public async loadSymbols(symbols: Symbol[], onProgress?: (loaded: number, total: number) => void): Promise<void> {
     // Clear existing symbols
     this.symbols.clear()
     this.symbolData.clear()
+    
+    const total = symbols.length
+    let loaded = 0
+    const report = () => {
+      loaded = Math.min(total, loaded + 1)
+      onProgress?.(loaded, total)
+    }
     
     // Load all symbols
     await Promise.all(
@@ -71,12 +78,14 @@ export class SlotRenderer {
           const texture = await PIXI.Assets.load(symbol.image)
           this.symbols.set(symbol.id, texture)
           this.symbolData.set(symbol.id, symbol)
+          report()
         } catch (err) {
           console.warn(`Failed to load symbol ${symbol.name}:`, err)
           // Create fallback texture
           const texture = PIXI.Texture.from(symbol.image)
           this.symbols.set(symbol.id, texture)
           this.symbolData.set(symbol.id, symbol)
+          report()
         }
       })
     )
