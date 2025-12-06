@@ -41,6 +41,7 @@ import type {
 } from '@/types'
 import { ArtboardSwitcher } from './artboard-switcher'
 import { useSynchronizedEditing } from '@/hooks/use-synchronized-editing'
+import { LazyImage } from '@/lib/lazy-load-image'
 
 const SlotCanvas = dynamic(() => import('@/components/slot-canvas'), { ssr: false })
 
@@ -923,10 +924,11 @@ interface ElementRendererProps {
 function ElementRenderer({ element, fonts, project, isSpinning, isActiveArtboard }: ElementRendererProps) {
   if (element.type === 'image') {
     return (
-      <img
+      <LazyImage
         src={element.src}
         alt={element.name}
-        className="h-full w-full object-contain rounded"
+        className="h-full w-full"
+        imageClassName="h-full w-full object-contain rounded"
         draggable={false}
       />
     )

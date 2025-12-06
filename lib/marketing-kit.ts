@@ -1,9 +1,11 @@
 'use client'
 
+import JSZip from 'jszip'
 import { generateId } from '@/lib/utils'
 import { getTemplateById, predefinedTemplates } from '@/lib/templates/predefined-templates'
 import { useProjectStore } from '@/store/project-store'
 import type { CanvasElement } from '@/types'
+import { getFileStorage } from '@/lib/storage/indexed-db-storage'
 
 export interface MarketingKitSummary {
   background?: string
@@ -12,6 +14,15 @@ export interface MarketingKitSummary {
   headline?: string
   body?: string
   cta?: string
+}
+
+export interface MarketingKitAsset {
+  id: string
+  name: string
+  kind: 'image' | 'text'
+  dataUrl?: string
+  content?: string
+  size?: number
 }
 
 const pushElementToBack = (elementId: string) => {
@@ -160,5 +171,162 @@ export const applyMarketingKitSummary = async (summary: MarketingKitSummary, tem
       visible: true,
       templateRole: 'logo'
     })
+  }
+}
+
+const readFileAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+
+const ACCEPTED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'svg']
+const ACCEPTED_TEXT_EXTENSIONS = ['txt']
+
+const getMimeFromExtension = (ext: string) => {
+  if (['jpg', 'jpeg'].includes(ext)) return 'image/jpeg'
+  if (['png', 'webp', 'svg'].includes(ext)) return `image/${ext}`
+  if (ext === 'txt') return 'text/plain'
+  return 'application/octet-stream'
+}
+
+export const parseMarketingKitFiles = async (files: File[]): Promise<MarketingKitAsset[]> => {
+  const parsedAssets: MarketingKitAsset[] = []
+
+  const extractZip = async (file: File) => {
+    const zip = await JSZip.loadAsync(file)
+    const entries = Object.keys(zip.files)
+
+    for (const path of entries) {
+      const entry = zip.files[path]
+      if (entry.dir) continue
+
+      const ext = path.split('.').pop()?.toLowerCase() || ''
+      const name = path.split('/').pop() || path
+
+      if (ACCEPTED_IMAGE_EXTENSIONS.includes(ext)) {
+        const base64 = await entry.async('base64')
+        const mime = getMimeFromExtension(ext)
+        parsedAssets.push({
+          id: generateId(),
+          name,
+          kind: 'image',
+          dataUrl: `data:${mime};base64,${base64}`
+        })
+      } else if (ACCEPTED_TEXT_EXTENSIONS.includes(ext)) {
+        const content = await entry.async('text')
+        parsedAssets.push({
+          id: generateId(),
+          name,
+          kind: 'text',
+          content
+        })
+      }
+    }
+  }
+
+  for (const file of files) {
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      await extractZip(file)
+      continue
+    }
+
+    if (file.type.startsWith('text') || ACCEPTED_TEXT_EXTENSIONS.includes(ext)) {
+      parsedAssets.push({
+        id: generateId(),
+        name: file.name,
+        kind: 'text',
+        content: await file.text()
+      })
+      continue
+    }
+
+    if (file.type.startsWith('image/') || ACCEPTED_IMAGE_EXTENSIONS.includes(ext)) {
+      parsedAssets.push({
+        id: generateId(),
+        name: file.name,
+        kind: 'image',
+        dataUrl: await readFileAsDataUrl(file),
+        size: file.size
+      })
+    }
+  }
+
+  return parsedAssets
+}
+
+export const summarizeMarketingKitAssets = (assets: MarketingKitAsset[]): MarketingKitSummary => {
+  const images = assets.filter(asset => asset.kind === 'image')
+  const textAsset = assets.find(asset => asset.kind === 'text' && asset.content)
+
+  const findByKeywords = (keywords: string[]) => {
+    const lowerKeywords = keywords.map(k => k.toLowerCase())
+    return images.find(asset =>
+      lowerKeywords.some(keyword => asset.name.toLowerCase().includes(keyword))
+    )
+  }
+
+  const background = findByKeywords(['background', 'bg']) || images[0]
+  const logo = findByKeywords(['logo'])
+  const hero = findByKeywords(['hero', 'keyart', 'main']) || images[1] || images[0]
+
+  const copyLines = textAsset?.content
+    ?.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean) || []
+
+  const headline = copyLines[0] || 'Experience Big Wins Instantly'
+  const body = copyLines.slice(1, copyLines.length - 1).join(' ') || 'Bring your marketing kit to life automatically.'
+  const cta = copyLines.at(-1) || 'Play Now'
+
+  return {
+    background: background?.dataUrl,
+    hero: hero?.dataUrl,
+    logo: logo?.dataUrl,
+    headline,
+    body,
+    cta
+  }
+}
+
+const dataUrlToMimeType = (dataUrl: string) => {
+  const matches = dataUrl.match(/^data:(.*?);/)
+  return matches?.[1] || 'image/png'
+}
+
+export const persistMarketingKitImages = async (
+  summary: MarketingKitSummary,
+  options: { projectId?: string; category?: string } = {}
+): Promise<MarketingKitSummary> => {
+  const projectId = options.projectId || 'marketing-kit'
+  const category = options.category || 'marketing-kit'
+  const fileStorage = typeof window !== 'undefined' ? await getFileStorage() : null
+
+  const storeDataUrl = async (value?: string, label?: string) => {
+    if (!value || !value.startsWith('data:')) return value
+    if (!fileStorage) return value
+
+    const id = generateId()
+    await fileStorage.storeFile({
+      id,
+      projectId,
+      type: 'asset',
+      category,
+      name: label ? `${label}-${id}` : id,
+      data: value,
+      contentType: dataUrlToMimeType(value)
+    })
+    return `file://${id}`
+  }
+
+  return {
+    ...summary,
+    background: await storeDataUrl(summary.background, 'background'),
+    hero: await storeDataUrl(summary.hero, 'hero'),
+    logo: await storeDataUrl(summary.logo, 'logo')
   }
 }

@@ -15,12 +15,11 @@ const ExportDialog = dynamic(() => import('@/components/export-dialog'), { ssr: 
 const BrandAssetsUploader = dynamic(() => import('@/components/brand-assets-uploader'), { ssr: false })
 const BrandAssetsManager = dynamic(() => import('@/components/brand-assets-manager'), { ssr: false })
 const TemplateSelectionDialog = dynamic(() => import('@/components/template-selection-dialog'), { ssr: false })
-const MarketingKitImporter = dynamic(() => import('@/components/marketing-kit-importer'), { ssr: false })
-const MarketingKitWorkflow = dynamic(() => import('@/components/marketing-kit-workflow').then(mod => ({ default: mod.MarketingKitWorkflow })), { ssr: false })
 import { getTemplateById } from '@/lib/templates/predefined-templates'
 import { TemplateEditor } from '@/components/template-editor'
 import PlayableLayoutDesigner from '@/components/playable-layout-designer'
 import { StorageMonitor } from '@/components/storage-monitor'
+import { MarketingKitStudio } from '@/components/marketing-kit-studio'
 
 export default function Home() {
   const [showProjectDialog, setShowProjectDialog] = useState(false)
@@ -28,14 +27,20 @@ export default function Home() {
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showBrandAssetsUploader, setShowBrandAssetsUploader] = useState(false)
   const [showTemplateDialog, setShowTemplateDialog] = useState(false)
-  const [showMarketingImporter, setShowMarketingImporter] = useState(false)
-  const [showMarketingWorkflow, setShowMarketingWorkflow] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
   
   const { currentProject, projects } = useProjectStore()
-  useStoreHydration()
+  const isStoreHydrated = useStoreHydration()
   const artboardSummary = currentProject?.canvas?.artboards ?? []
   const activeTemplate = currentProject?.templateId ? getTemplateById(currentProject.templateId) : null
+  
+  if (!isStoreHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading your workspace…</p>
+      </div>
+    )
+  }
   
   useEffect(() => {
     if (!currentProject && projects.length === 0) {
@@ -90,6 +95,7 @@ export default function Home() {
       
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6 space-y-10">
+        <MarketingKitStudio />
         <div className="grid grid-cols-12 gap-6">
           {/* Left Sidebar - Elements */}
           <div className="col-span-3 space-y-4">
@@ -107,23 +113,12 @@ export default function Home() {
                   Choose Template
                 </Button>
                 <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setShowMarketingImporter(true)}
-                  disabled={!currentProject}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import Marketing Kit
-                </Button>
-                
-                <Button
                   variant="default"
                   className="w-full justify-start"
-                  onClick={() => setShowMarketingWorkflow(true)}
-                  disabled={!currentProject}
+                  onClick={() => document.getElementById('marketing-kit-studio')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Auto-Generate Playables
+                  Marketing Kit Studio
                 </Button>
                 
                 <Button
@@ -367,23 +362,6 @@ export default function Home() {
           open={showBrandAssetsUploader}
           onOpenChange={setShowBrandAssetsUploader}
         />
-      )}
-      
-      {showMarketingImporter && (
-        <MarketingKitImporter
-          open={showMarketingImporter}
-          onOpenChange={setShowMarketingImporter}
-        />
-      )}
-      
-      {showMarketingWorkflow && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <MarketingKitWorkflow 
-              onComplete={() => setShowMarketingWorkflow(false)}
-            />
-          </div>
-        </div>
       )}
       
       {showTemplateDialog && (

@@ -9,10 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Sparkles, Upload, FileText, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useProjectStore } from '@/store/project-store';
 import { generatePlayableVariations } from '@/lib/playable-generator';
-import { MarketingKitSummary } from '@/lib/marketing-kit';
+import { MarketingKitSummary, MarketingKitAsset, parseMarketingKitFiles, summarizeMarketingKitAssets, persistMarketingKitImages } from '@/lib/marketing-kit';
 import { useDropzone } from 'react-dropzone';
-import JSZip from 'jszip';
-import { generateId } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SizeOption {
@@ -37,107 +35,29 @@ interface MarketingKitWorkflowProps {
 }
 
 // Simple dropzone component for marketing kit import
-function MarketingKitDropzone({ onImport }: { onImport: (summary: MarketingKitSummary) => void }) {
-  const [assets, setAssets] = useState<any[]>([]);
+function MarketingKitDropzone({ onImport, projectId }: { onImport: (summary: MarketingKitSummary) => void; projectId?: string }) {
+  const [assets, setAssets] = useState<MarketingKitAsset[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const extractZip = async (file: File) => {
-    const zip = await JSZip.loadAsync(file);
-    const entries = Object.keys(zip.files);
-    const results: any[] = [];
-    
-    for (const path of entries) {
-      const entry = zip.files[path];
-      if (entry.dir) continue;
-      
-      const ext = path.split('.').pop()?.toLowerCase() || '';
-      const name = path.split('/').pop() || path;
-      
-      if (['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext)) {
-        const base64 = await entry.async('base64');
-        const mime = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-        results.push({
-          id: generateId(),
-          name,
-          kind: 'image',
-          dataUrl: `data:${mime};base64,${base64}`
-        });
-      } else if (ext === 'txt') {
-        const content = await entry.async('text');
-        results.push({
-          id: generateId(),
-          name,
-          kind: 'text',
-          content
-        });
-      }
-    }
-    
-    return results;
-  };
-
-  const processFile = async (file: File) => {
-    if (file.name.toLowerCase().endsWith('.zip')) {
-      return extractZip(file);
-    }
-    
-    if (file.type.startsWith('text') || file.name.toLowerCase().endsWith('.txt')) {
-      return [{
-        id: generateId(),
-        name: file.name,
-        kind: 'text',
-        content: await file.text()
-      }];
-    }
-    
-    if (file.type.startsWith('image/')) {
-      const dataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      
-      return [{
-        id: generateId(),
-        name: file.name,
-        kind: 'image',
-        dataUrl
-      }];
-    }
-    
-    return [];
-  };
+  const summaryPreview = summarizeMarketingKitAssets(assets);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsProcessing(true);
     try {
-      const allAssets = [];
-      for (const file of acceptedFiles) {
-        const fileAssets = await processFile(file);
-        allAssets.push(...fileAssets);
+      const parsed = await parseMarketingKitFiles(acceptedFiles);
+      const updatedAssets = [...assets, ...parsed];
+      setAssets(updatedAssets);
+
+      if (updatedAssets.length > 0) {
+        const summary = summarizeMarketingKitAssets(updatedAssets);
+        const persisted = await persistMarketingKitImages(summary, { projectId });
+        onImport(persisted);
       }
-      setAssets(allAssets);
-      
-      // Auto-process if we have assets
-      if (allAssets.length > 0) {
-        const images = allAssets.filter(a => a.kind === 'image');
-        const textAsset = allAssets.find(a => a.kind === 'text' && a.content);
-        
-        const summary: MarketingKitSummary = {
-          background: images.find(img => img.name.toLowerCase().includes('background'))?.dataUrl || '',
-          hero: images.find(img => img.name.toLowerCase().includes('hero') || img.name.toLowerCase().includes('character'))?.dataUrl || images[0]?.dataUrl || '',
-          logo: images.find(img => img.name.toLowerCase().includes('logo'))?.dataUrl || '',
-          headline: textAsset?.content?.match(/^.+$/m)?.[0] || 'Play & Win Big!',
-          body: textAsset?.content?.split('\\n').slice(1, -1).join(' ') || 'Experience the thrill of winning',
-          cta: 'Play Now'
-        };
-        
-        onImport(summary);
-      }
+    } catch (error) {
+      console.error('Failed to process marketing kit:', error);
     } finally {
       setIsProcessing(false);
     }
-  }, [onImport]);
+  }, [assets, onImport, projectId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -145,8 +65,13 @@ function MarketingKitDropzone({ onImport }: { onImport: (summary: MarketingKitSu
       'application/zip': ['.zip'],
       'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.svg'],
       'text/plain': ['.txt']
-    }
+    },
+    multiple: true
   });
+
+  const removeAsset = (id: string) => {
+    setAssets(prev => prev.filter(asset => asset.id !== id));
+  };
 
   return (
     <div>
@@ -167,19 +92,36 @@ function MarketingKitDropzone({ onImport }: { onImport: (summary: MarketingKitSu
       </div>
       
       {assets.length > 0 && (
-        <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-          <p className="text-sm font-medium mb-2">Successfully imported {assets.length} files</p>
-          <div className="grid grid-cols-2 gap-2">
-            {assets.slice(0, 4).map(asset => (
-              <div key={asset.id} className="text-xs truncate">
-                {asset.kind === 'image' ? '🖼' : '📄'} {asset.name}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-md border">
+            <div className="px-3 py-2 border-b flex items-center justify-between">
+              <p className="text-sm font-medium">Imported Files</p>
+              <span className="text-xs text-muted-foreground">{assets.length} file(s)</span>
+            </div>
+            <ScrollArea className="h-40">
+              <div className="p-3 space-y-2">
+                {assets.map(asset => (
+                  <div key={asset.id} className="flex items-center justify-between rounded-md border px-2 py-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      {asset.kind === 'image' ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                      <span className="truncate max-w-[160px]">{asset.name}</span>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => removeAsset(asset.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-            ))}
-            {assets.length > 4 && (
-              <div className="text-xs text-muted-foreground">
-                ...and {assets.length - 4} more
-              </div>
-            )}
+            </ScrollArea>
+          </div>
+
+          <div className="rounded-md border p-3 space-y-2">
+            <p className="text-xs uppercase text-muted-foreground">Detected Copy</p>
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm space-y-1">
+              <p><strong>Headline:</strong> {summaryPreview.headline}</p>
+              <p><strong>Body:</strong> {summaryPreview.body}</p>
+              <p><strong>CTA:</strong> {summaryPreview.cta}</p>
+            </div>
           </div>
         </div>
       )}
@@ -192,7 +134,6 @@ function MarketingKitDropzone({ onImport }: { onImport: (summary: MarketingKitSu
     </div>
   );
 }
-
 export function MarketingKitWorkflow({ onComplete }: MarketingKitWorkflowProps) {
   const [step, setStep] = useState<'import' | 'sizes' | 'generating' | 'complete'>('import');
   const [marketingKitSummary, setMarketingKitSummary] = useState<MarketingKitSummary | null>(null);
@@ -201,32 +142,6 @@ export function MarketingKitWorkflow({ onComplete }: MarketingKitWorkflowProps) 
   const [generationMessage, setGenerationMessage] = useState('');
   
   const { currentProject, updateProject } = useProjectStore();
-
-  // Marketing Kit asset types
-  type KitAsset = {
-    id: string;
-    name: string;
-    kind: 'image' | 'text';
-    dataUrl?: string;
-    content?: string;
-  };
-
-  // Helper to read file as data URL
-  const readFileAsDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  // Helper to get MIME type from extension
-  const getMimeFromExtension = (ext: string) => {
-    if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) return `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-    if (['svg'].includes(ext)) return 'image/svg+xml';
-    if (ext === 'txt') return 'text/plain';
-    return 'application/octet-stream';
-  };
 
   const handleMarketingKitImport = useCallback((summary: MarketingKitSummary) => {
     setMarketingKitSummary(summary);
@@ -305,7 +220,7 @@ export function MarketingKitWorkflow({ onComplete }: MarketingKitWorkflowProps) 
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <MarketingKitDropzone onImport={handleMarketingKitImport} />
+            <MarketingKitDropzone onImport={handleMarketingKitImport} projectId={currentProject?.id} />
           </CardContent>
         </Card>
       )}

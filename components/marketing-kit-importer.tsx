@@ -2,14 +2,13 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import JSZip from 'jszip'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Upload, FileText, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { generateId } from '@/lib/utils'
-import { applyMarketingKitSummary, type MarketingKitSummary } from '@/lib/marketing-kit'
+import { applyMarketingKitSummary, persistMarketingKitImages, type MarketingKitAsset, type MarketingKitSummary, parseMarketingKitFiles, summarizeMarketingKitAssets } from '@/lib/marketing-kit'
 import { predefinedTemplates } from '@/lib/templates/predefined-templates'
+import { useProjectStore } from '@/store/project-store'
 
 interface MarketingKitImporterProps {
   open?: boolean
@@ -18,134 +17,15 @@ interface MarketingKitImporterProps {
   hideTemplateSelector?: boolean
 }
 
-type KitAsset = {
-  id: string
-  name: string
-  kind: 'image' | 'text'
-  dataUrl?: string
-  content?: string
-}
-
-const readFileAsDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-
-const getMimeFromExtension = (ext: string) => {
-  if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) return `image/${ext === 'jpg' ? 'jpeg' : ext}`
-  if (['svg'].includes(ext)) return 'image/svg+xml'
-  if (ext === 'txt') return 'text/plain'
-  if (ext === 'json') return 'application/json'
-  return 'application/octet-stream'
-}
-
-const summarizeAssets = (assets: KitAsset[]): MarketingKitSummary => {
-  const images = assets.filter(asset => asset.kind === 'image')
-  const textAsset = assets.find(asset => asset.kind === 'text' && asset.content)
-  
-  const findByKeywords = (keywords: string[]) => {
-    const lowerKeywords = keywords.map(k => k.toLowerCase())
-    return images.find(asset =>
-      lowerKeywords.some(keyword => asset.name.toLowerCase().includes(keyword))
-    )
-  }
-  
-  const background = findByKeywords(['background', 'bg']) || images[0]
-  const logo = findByKeywords(['logo'])
-  const hero = findByKeywords(['hero', 'keyart', 'main']) || images[1] || images[0]
-  
-  const copyLines = textAsset?.content
-    ?.split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(Boolean) || []
-  
-  const headline = copyLines[0] || 'Experience Big Wins Instantly'
-  const body = copyLines.slice(1, copyLines.length - 1).join(' ') || 'Bring your marketing kit to life automatically.'
-  const cta = copyLines.at(-1) || 'Play Now'
-  
-  return {
-    background: background?.dataUrl,
-    hero: hero?.dataUrl,
-    logo: logo?.dataUrl,
-    headline,
-    body,
-    cta
-  }
-}
-
 export default function MarketingKitImporter({ open, onOpenChange, onImport, hideTemplateSelector }: MarketingKitImporterProps) {
-  const [assets, setAssets] = useState<KitAsset[]>([])
+  const [assets, setAssets] = useState<MarketingKitAsset[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState(predefinedTemplates[0]?.id ?? '')
-  const summary = useMemo(() => summarizeAssets(assets), [assets])
-  
-  const extractZip = async (file: File) => {
-    const zip = await JSZip.loadAsync(file)
-    const entries = Object.keys(zip.files)
-    const results: KitAsset[] = []
-    
-    for (const path of entries) {
-      const entry = zip.files[path]
-      if (entry.dir) continue
-      const ext = path.split('.').pop()?.toLowerCase() || ''
-      if (['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext)) {
-        const base64 = await entry.async('base64')
-        const mime = getMimeFromExtension(ext)
-        results.push({
-          id: generateId(),
-          name: path.split('/').pop() || path,
-          kind: 'image',
-          dataUrl: `data:${mime};base64,${base64}`
-        })
-      } else if (['txt'].includes(ext)) {
-        const content = await entry.async('text')
-        results.push({
-          id: generateId(),
-          name: path.split('/').pop() || path,
-          kind: 'text',
-          content
-        })
-      }
-    }
-    
-    return results
-  }
-  
-  const processFile = async (file: File): Promise<KitAsset[]> => {
-    if (file.name.toLowerCase().endsWith('.zip')) {
-      return extractZip(file)
-    }
-    
-    if (file.type.startsWith('text') || file.name.toLowerCase().endsWith('.txt')) {
-      return [{
-        id: generateId(),
-        name: file.name,
-        kind: 'text',
-        content: await file.text()
-      }]
-    }
-    
-    if (file.type.startsWith('image/')) {
-      return [{
-        id: generateId(),
-        name: file.name,
-        kind: 'image',
-        dataUrl: await readFileAsDataUrl(file)
-      }]
-    }
-    
-    return []
-  }
+  const summary = useMemo(() => summarizeMarketingKitAssets(assets), [assets])
+  const { currentProject } = useProjectStore()
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const processed: KitAsset[] = []
-    for (const file of acceptedFiles) {
-      const result = await processFile(file)
-      processed.push(...result)
-    }
+    const processed = await parseMarketingKitFiles(acceptedFiles)
     setAssets(prev => [...prev, ...processed])
   }, [])
   
@@ -162,13 +42,14 @@ export default function MarketingKitImporter({ open, onOpenChange, onImport, hid
     if (assets.length === 0) return
     setIsProcessing(true)
     try {
+      const summaryToUse = await persistMarketingKitImages(summary, {
+        projectId: currentProject?.id
+      })
       if (onImport) {
-        // Just return the summary for external handling
-        onImport(summary)
+        onImport(summaryToUse)
         setAssets([])
       } else {
-        // Apply directly to the project
-        await applyMarketingKitSummary(summary, selectedTemplate)
+        await applyMarketingKitSummary(summaryToUse, selectedTemplate)
         setAssets([])
         onOpenChange?.(false)
       }

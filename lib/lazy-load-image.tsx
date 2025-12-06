@@ -5,16 +5,20 @@ interface LazyImageProps {
   src: string
   alt: string
   className?: string
+  imageClassName?: string
   placeholder?: string
   onLoad?: () => void
   onError?: (error: Error) => void
+  draggable?: boolean
 }
 
 export function LazyImage({ 
   src, 
   alt, 
   className = '', 
+  imageClassName,
   placeholder,
+  draggable = true,
   onLoad,
   onError 
 }: LazyImageProps) {
@@ -109,7 +113,8 @@ export function LazyImage({
         ref={imgRef}
         src={imageSrc}
         alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${imageClassName ?? className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        draggable={draggable}
         style={{ display: isLoading ? 'none' : 'block' }}
       />
     </div>
