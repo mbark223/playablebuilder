@@ -1,12 +1,45 @@
 import type { PlayableTemplate } from '@/types/templates'
 
+const escapeSvgText = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const createTemplateThumbnail = (title: string, accent: string, background: string) => {
+  const safeTitle = escapeSvgText(title)
+  const svg = `
+<svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${background}" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="${accent}" stop-opacity="0.95" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.8" cy="0.2" r="0.8">
+      <stop offset="0%" stop-color="${accent}" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="${background}" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="400" height="240" rx="32" fill="url(#grad)" />
+  <circle cx="320" cy="40" r="120" fill="url(#glow)" />
+  <rect x="24" y="24" width="80" height="32" rx="8" fill="rgba(15,23,42,0.45)" />
+  <text x="32" y="47" fill="white" font-family="Inter, sans-serif" font-size="12" font-weight="600" letter-spacing="1.5">
+    PLAYABLE
+  </text>
+  <text x="32" y="120" fill="white" font-family="Inter, sans-serif" font-size="28" font-weight="600">
+    ${safeTitle}
+  </text>
+  <text x="32" y="160" fill="rgba(255,255,255,0.85)" font-family="Inter, sans-serif" font-size="16">
+    Ready-to-use variation
+  </text>
+</svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
 export const predefinedTemplates: PlayableTemplate[] = [
   {
     id: 'three-spins-endcard',
     name: 'Triple Spin Showcase',
     description: 'Three engaging spins followed by an attractive end card with bonus offer',
     category: 'engagement',
-    thumbnail: '/templates/three-spins.png',
+    thumbnail: createTemplateThumbnail('Triple Spin Showcase', '#f97316', '#0f172a'),
     scenario: {
       type: 'spin-count',
       steps: [
@@ -133,7 +166,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     name: 'Big Win Experience',
     description: 'Build excitement with guaranteed big win on third spin',
     category: 'conversion',
-    thumbnail: '/templates/big-win.png',
+    thumbnail: createTemplateThumbnail('Big Win Experience', '#22d3ee', '#111827'),
     scenario: {
       type: 'win-triggered',
       steps: [
@@ -267,7 +300,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     name: 'Free Spins Teaser',
     description: 'Show the excitement of triggering free spins feature',
     category: 'bonus',
-    thumbnail: '/templates/free-spins.png',
+    thumbnail: createTemplateThumbnail('Free Spins Teaser', '#a855f7', '#09090b'),
     scenario: {
       type: 'spin-count',
       steps: [
@@ -398,7 +431,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     name: 'Jackpot Chase',
     description: 'Build anticipation with progressive jackpot meters',
     category: 'retention',
-    thumbnail: '/templates/jackpot.png',
+    thumbnail: createTemplateThumbnail('Jackpot Chase', '#facc15', '#0b1120'),
     scenario: {
       type: 'progressive',
       steps: [
@@ -536,7 +569,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     name: 'Limited Time Rush',
     description: 'Create urgency with countdown timer and rapid spins',
     category: 'engagement',
-    thumbnail: '/templates/time-rush.png',
+    thumbnail: createTemplateThumbnail('Limited Time Rush', '#fb7185', '#0c0a09'),
     scenario: {
       type: 'time-based',
       steps: [
@@ -667,7 +700,7 @@ export const predefinedTemplates: PlayableTemplate[] = [
     name: 'Second Chance Win',
     description: 'Turn losses into wins with special recovery bonus',
     category: 'retention',
-    thumbnail: '/templates/loss-recovery.png',
+    thumbnail: createTemplateThumbnail('Second Chance Win', '#38bdf8', '#0b1220'),
     scenario: {
       type: 'loss-streak',
       steps: [

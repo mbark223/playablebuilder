@@ -91,8 +91,8 @@ const defaultReelConfig: ReelConfiguration = {
       ['symbol1', 'symbol2', 'symbol3'],
     ]
   },
-  spinSpeed: 1000,
-  stopDelay: [0, 100, 200, 300, 400],
+  spinSpeed: 700,
+  stopDelay: [0, 80, 160, 240, 320],
   bounceAnimation: true,
   blurEffect: true,
   anticipationStop: true

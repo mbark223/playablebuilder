@@ -60,6 +60,7 @@ export function MarketingKitStudio() {
   const [generationProgress, setGenerationProgress] = useState(0)
   const [generationMessage, setGenerationMessage] = useState('Preparing variations…')
   const [playableOptions, setPlayableOptions] = useState<GeneratedPlayableOption[]>([])
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
   const [variations, setVariations] = useState<{ artboards: Artboard[]; elements: CanvasElement[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [storageStatus, setStorageStatus] = useState<StorageStatus>('checking')
@@ -70,6 +71,19 @@ export function MarketingKitStudio() {
   const detectedCopy = useMemo(() => summarizeMarketingKitAssets(assets), [assets])
   const activeCopy = kitSummary ?? detectedCopy
   const selectedSizes = sizeChoices.filter(choice => choice.selected)
+  const selectedOption = playableOptions[selectedOptionIndex] ?? null
+
+  useEffect(() => {
+    setSelectedOptionIndex(prev => {
+      if (playableOptions.length === 0) {
+        return 0
+      }
+      if (prev >= playableOptions.length) {
+        return playableOptions.length - 1
+      }
+      return prev
+    })
+  }, [playableOptions.length])
 
   const handleStorageCheck = useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.storage) return
@@ -117,6 +131,7 @@ export function MarketingKitStudio() {
         })
         setKitSummary(persisted)
         setPlayableOptions([])
+        setSelectedOptionIndex(0)
         setVariations(null)
         setGenerationProgress(0)
       }
@@ -144,6 +159,14 @@ export function MarketingKitStudio() {
         choice.id === id ? { ...choice, selected: !choice.selected } : choice
       )
     )
+  }
+  
+  const goToPreviousOption = () => {
+    setSelectedOptionIndex(index => Math.max(index - 1, 0))
+  }
+  
+  const goToNextOption = () => {
+    setSelectedOptionIndex(index => Math.min(index + 1, Math.max(playableOptions.length - 1, 0)))
   }
 
   const ensureProject = useCallback(() => {
@@ -185,6 +208,7 @@ export function MarketingKitStudio() {
         sizeLabel: `${artboard.width}×${artboard.height}`
       }))
       setPlayableOptions(options)
+      setSelectedOptionIndex(0)
     } catch (err) {
       console.error('Failed to generate playables', err)
       setError('Generation failed. Please try again or simplify the kit.')
@@ -371,37 +395,89 @@ export function MarketingKitStudio() {
             </div>
           )}
 
-          {playableOptions.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {playableOptions.map(option => (
-                <div key={option.id} className="rounded-lg border p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-semibold">{option.sizeLabel}</p>
-                      <p className="text-xs text-muted-foreground">{option.layout}</p>
-                    </div>
-                    <Badge variant="outline">{kitSummary?.cta || 'CTA ready'}</Badge>
-                  </div>
-                  <VariationPreview artboard={option.artboard} elements={option.elements} />
-                  <p className="text-xs text-muted-foreground">
-                    Wired with your hero, background, logo, and copy from the marketing kit.
-                  </p>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span>{option.elements.length} layers</span>
-                    <span>Synchronized editing enabled</span>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button className="flex-1" onClick={() => applyOption(option, 'replace')}>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Use variation
-                    </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => applyOption(option, 'append')}>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add as artboard
-                    </Button>
-                  </div>
+          {selectedOption && (
+            <div className="rounded-lg border p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-semibold">{selectedOption.sizeLabel}</p>
+                  <p className="text-xs text-muted-foreground">{selectedOption.layout}</p>
                 </div>
-              ))}
+                <div className="text-right">
+                  <Badge variant="outline">{kitSummary?.cta || 'CTA ready'}</Badge>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Variation {selectedOptionIndex + 1} of {playableOptions.length}
+                  </p>
+                </div>
+              </div>
+              
+              <VariationPreview artboard={selectedOption.artboard} elements={selectedOption.elements} />
+              
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-[120px]"
+                  onClick={goToPreviousOption}
+                  disabled={selectedOptionIndex === 0}
+                >
+                  Previous
+                </Button>
+                <div className="flex-1 text-center text-xs text-muted-foreground">
+                  Swipe or select a variation below
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-[120px]"
+                  onClick={goToNextOption}
+                  disabled={selectedOptionIndex === playableOptions.length - 1}
+                >
+                  Next
+                </Button>
+              </div>
+              
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {playableOptions.map((option, index) => {
+                  const isActive = index === selectedOptionIndex
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setSelectedOptionIndex(index)}
+                      className={`flex-shrink-0 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
+                        isActive
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'text-muted-foreground hover:border-primary/50'
+                      }`}
+                    >
+                      <p className="font-semibold">{option.sizeLabel}</p>
+                      <p className="text-[10px] uppercase tracking-wide">{option.layout}</p>
+                    </button>
+                  )
+                })}
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Wired with your hero, background, logo, and copy from the marketing kit.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span>{selectedOption.elements.length} layers</span>
+                <span>Synchronized editing enabled</span>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button className="flex-1 min-w-[180px]" onClick={() => applyOption(selectedOption, 'replace')}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Use variation
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 min-w-[180px]"
+                  onClick={() => applyOption(selectedOption, 'append')}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add as artboard
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -446,6 +522,12 @@ const VariationPreview = ({ artboard, elements }: VariationPreviewProps) => {
           </div>
         )
       })}
+      
+      {sorted.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-wide text-muted-foreground">
+          Preview not available
+        </div>
+      )}
     </div>
   )
 }
@@ -453,9 +535,16 @@ const VariationPreview = ({ artboard, elements }: VariationPreviewProps) => {
 const renderPreviewElement = (element: CanvasElement) => {
   switch (element.type) {
     case 'image':
+      if (!element.src) {
+        return (
+          <div className="h-full w-full rounded bg-slate-800/60 flex items-center justify-center text-[8px] uppercase tracking-wide text-slate-300">
+            Image
+          </div>
+        )
+      }
       return (
         <LazyImage
-          src={element.src || ''}
+          src={element.src}
           alt={element.name}
           className="h-full w-full"
           imageClassName={`h-full w-full ${element.fit === 'contain' ? 'object-contain' : 'object-cover'}`}

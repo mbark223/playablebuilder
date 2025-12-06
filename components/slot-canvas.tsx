@@ -13,6 +13,7 @@ interface SlotCanvasProps {
 }
 
 export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasProps) {
+  const SIMPLE_RENDERER_MESSAGE = 'Using simplified renderer (some effects may be limited)'
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<SlotRenderer | SimpleSlotRenderer | null>(null)
   const [lastResult, setLastResult] = useState<SpinResult | null>(null)
@@ -23,6 +24,26 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
   useEffect(() => {
     if (!canvasRef.current) return
     
+    const initializeSimpleRenderer = async () => {
+      if (!canvasRef.current) return
+      try {
+        console.log('Falling back to simple canvas renderer')
+        const simpleRenderer = new SimpleSlotRenderer(canvasRef.current, project.config.reels)
+        rendererRef.current = simpleRenderer
+        setRendererType('simple')
+        
+        if (project.config.symbols.length > 0) {
+          await simpleRenderer.loadSymbols(project.config.symbols)
+          setIsReady(true)
+        }
+        
+        setError(SIMPLE_RENDERER_MESSAGE)
+      } catch (fallbackError) {
+        console.error('Simple renderer also failed:', fallbackError)
+        setError('Graphics initialization failed. Please refresh the page.')
+      }
+    }
+    
     // Small delay to ensure canvas is properly mounted
     const initTimer = setTimeout(async () => {
       try {
@@ -30,7 +51,8 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         const testCanvas = document.createElement('canvas')
         const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
         if (!gl) {
-          setError('WebGL is not supported in your browser')
+          console.warn('WebGL is not supported; falling back to simple renderer.')
+          await initializeSimpleRenderer()
           return
         }
         
@@ -49,25 +71,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           setError(null)
         } catch (pixiError: any) {
           console.error('PIXI.js initialization error:', pixiError)
-          
-          // Try simple canvas fallback
-          try {
-            console.log('Falling back to simple canvas renderer')
-            const simpleRenderer = new SimpleSlotRenderer(canvasRef.current!, project.config.reels)
-            rendererRef.current = simpleRenderer
-            setRendererType('simple')
-            
-            // Load symbols
-            if (project.config.symbols.length > 0) {
-              await simpleRenderer.loadSymbols(project.config.symbols)
-              setIsReady(true)
-            }
-            
-            setError('Using simplified renderer (some effects may be limited)')
-          } catch (fallbackError) {
-            console.error('Simple renderer also failed:', fallbackError)
-            setError('Graphics initialization failed. Please refresh the page.')
-          }
+          await initializeSimpleRenderer()
         }
       } catch (err) {
         console.error('Failed to initialize slot renderer:', err)
@@ -139,7 +143,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         style={{ aspectRatio }}
       />
       
-      {error && error !== 'Using simplified renderer (some effects may be limited)' && (
+      {error && error !== SIMPLE_RENDERER_MESSAGE && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80">
           <div className="text-white text-center">
             <p className="mb-2">{error}</p>

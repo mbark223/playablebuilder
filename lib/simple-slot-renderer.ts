@@ -123,10 +123,10 @@ export class SimpleSlotRenderer {
     this.isSpinning = true
     const symbolIds = Array.from(this.symbols.keys())
     const [cols, rows] = this.config.layout.split('x').map(Number)
+    const maxStopDelay = this.config.stopDelay?.reduce((max, delay) => Math.max(max, delay), 0) ?? 0
+    const spinDuration = Math.max(600, this.config.spinSpeed + maxStopDelay)
     
     // Animate spinning
-    let spinTime = 0
-    const spinDuration = 2000
     const startTime = Date.now()
     
     const animate = () => {

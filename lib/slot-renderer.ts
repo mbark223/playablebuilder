@@ -81,9 +81,11 @@ export class SlotRenderer {
       })
     )
     
+    const availableSymbolIds = symbols.map((symbol) => symbol.id)
+    
     // Update reels with new textures
     this.reels.forEach(reel => {
-      reel.setTextures(this.symbols)
+      reel.setTextures(this.symbols, availableSymbolIds)
     })
   }
   
@@ -240,21 +242,32 @@ class Reel {
     }
   }
   
-  public setTextures(textures: Map<string, PIXI.Texture>) {
+  public setTextures(textures: Map<string, PIXI.Texture>, availableSymbolIds: string[]) {
     this.textures = textures
-    this.updateSymbols()
+    this.updateSymbols(availableSymbolIds)
   }
   
-  private updateSymbols() {
+  private updateSymbols(availableSymbolIds: string[]) {
     const reelSet = this.config.reelSets.normal[this.index]
-    if (!reelSet) return
+    const fallbackIds = availableSymbolIds.length > 0 ? availableSymbolIds : Array.from(this.textures.keys())
+    const hasFallbacks = fallbackIds.length > 0
+    if ((!reelSet || reelSet.length === 0) && !hasFallbacks) return
     
     this.symbols.forEach((symbol, i) => {
-      const symbolId = reelSet[i % reelSet.length]
-      const texture = this.textures.get(symbolId)
-      if (texture) {
+      const configuredId = reelSet && reelSet.length > 0
+        ? reelSet[i % reelSet.length]
+        : undefined
+      const needsFallback = !configuredId || !this.textures.has(configuredId)
+      const fallbackId = hasFallbacks ? fallbackIds[i % fallbackIds.length] : undefined
+      const symbolId = needsFallback ? fallbackId : configuredId
+      const texture = symbolId ? this.textures.get(symbolId) : undefined
+      
+      if (texture && symbolId) {
         symbol.texture = texture
         this.symbolIds[i] = symbolId
+      } else {
+        symbol.texture = PIXI.Texture.WHITE
+        this.symbolIds[i] = ''
       }
     })
   }
@@ -265,7 +278,7 @@ class Reel {
     
     const startTime = Date.now()
     const startY = this.container.y
-    const spinDistance = this.symbolSize * 20 // Spin 20 symbols
+    const spinDistance = this.symbolSize * 12 // Shorter travel for snappier spins
     
     // Blur effect during spin
     if (this.config.blurEffect) {
