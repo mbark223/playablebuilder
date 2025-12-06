@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -20,6 +20,7 @@ import {
   type MarketingKitSummary
 } from '@/lib/marketing-kit'
 import type { Artboard, CanvasElement } from '@/types'
+import { LazyImage } from '@/lib/lazy-load-image'
 
 interface SizeChoice {
   id: string
@@ -63,6 +64,7 @@ export function MarketingKitStudio() {
   const [error, setError] = useState<string | null>(null)
   const [storageStatus, setStorageStatus] = useState<StorageStatus>('checking')
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null)
+  const [lastAppliedInfo, setLastAppliedInfo] = useState<{ projectName: string; variationLabel: string } | null>(null)
   const { currentProject, updateProject, createProject } = useProjectStore()
 
   const detectedCopy = useMemo(() => summarizeMarketingKitAssets(assets), [assets])
@@ -207,6 +209,10 @@ export function MarketingKitStudio() {
       synchronizedEditing: true
     }
     updateProject(project.id, { canvas: nextCanvas })
+    setLastAppliedInfo({
+      projectName: project.name,
+      variationLabel: `${option.sizeLabel} · ${option.layout}`
+    })
   }
 
   const applyAllVariations = () => {
@@ -222,6 +228,10 @@ export function MarketingKitStudio() {
       synchronizedEditing: true
     }
     updateProject(project.id, { canvas: nextCanvas })
+    setLastAppliedInfo({
+      projectName: project.name,
+      variationLabel: 'All generated variations'
+    })
   }
 
   const resetKit = () => {
@@ -259,6 +269,13 @@ export function MarketingKitStudio() {
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
+          {lastAppliedInfo && (
+            <Alert>
+              <AlertDescription>
+                Added “{lastAppliedInfo.variationLabel}” to <span className="font-semibold">{lastAppliedInfo.projectName}</span>. Open the Playable Layout Designer to iterate.
+              </AlertDescription>
+            </Alert>
+          )}
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition ${
@@ -365,6 +382,7 @@ export function MarketingKitStudio() {
                     </div>
                     <Badge variant="outline">{kitSummary?.cta || 'CTA ready'}</Badge>
                   </div>
+                  <VariationPreview artboard={option.artboard} elements={option.elements} />
                   <p className="text-xs text-muted-foreground">
                     Wired with your hero, background, logo, and copy from the marketing kit.
                   </p>
@@ -390,4 +408,92 @@ export function MarketingKitStudio() {
       </div>
     </section>
   )
+}
+
+interface VariationPreviewProps {
+  artboard: Artboard
+  elements: CanvasElement[]
+}
+
+const VariationPreview = ({ artboard, elements }: VariationPreviewProps) => {
+  const sorted = useMemo(
+    () => [...elements].sort((a, b) => (a.layer ?? 0) - (b.layer ?? 0)),
+    [elements]
+  )
+
+  const toPercent = (value: number, total: number) =>
+    total === 0 ? 0 : (value / total) * 100
+
+  return (
+    <div
+      className="relative w-full overflow-hidden rounded-md border bg-slate-900/60"
+      style={{ aspectRatio: `${artboard.width}/${artboard.height}` }}
+    >
+      {sorted.map(element => {
+        const position = element.position ?? { x: 0, y: 0 }
+        const size = element.size ?? { width: artboard.width, height: artboard.height }
+        const style: CSSProperties = {
+          left: `${toPercent(position.x, artboard.width)}%`,
+          top: `${toPercent(position.y, artboard.height)}%`,
+          width: `${toPercent(size.width, artboard.width)}%`,
+          height: `${toPercent(size.height, artboard.height)}%`,
+          zIndex: element.layer ?? 0
+        }
+
+        return (
+          <div key={element.id} className="absolute" style={style}>
+            {renderPreviewElement(element)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const renderPreviewElement = (element: CanvasElement) => {
+  switch (element.type) {
+    case 'image':
+      return (
+        <LazyImage
+          src={element.src || ''}
+          alt={element.name}
+          className="h-full w-full"
+          imageClassName={`h-full w-full ${element.fit === 'contain' ? 'object-contain' : 'object-cover'}`}
+          draggable={false}
+        />
+      )
+    case 'text':
+      return (
+        <div
+          className="h-full w-full px-1 text-[8px] sm:text-[10px] flex items-center justify-center text-center"
+          style={{
+            color: element.color || '#fff',
+            fontWeight: element.fontWeight || 600,
+            fontSize: Math.min(Math.max(element.fontSize ?? 14, 10), 28),
+            textTransform: element.templateRole === 'cta' ? 'uppercase' : 'none'
+          }}
+        >
+          {element.text}
+        </div>
+      )
+    case 'shape':
+      return (
+        <div
+          className="h-full w-full"
+          style={{
+            background: element.fill || '#0ea5e9',
+            borderRadius: element.radius || 0,
+            border: element.borderWidth ? `${element.borderWidth}px solid ${element.borderColor || 'transparent'}` : undefined
+          }}
+        />
+      )
+    case 'slot':
+      return (
+        <div className="h-full w-full rounded bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 flex items-center justify-center text-[8px] text-slate-200">
+          Gameplay
+        </div>
+      )
+    default:
+      return null
+  }
 }
