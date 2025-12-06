@@ -18,6 +18,7 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
   const rendererRef = useRef<SlotRenderer | SimpleSlotRenderer | null>(null)
   const [lastResult, setLastResult] = useState<SpinResult | null>(null)
   const [isReady, setIsReady] = useState(false)
+  const [isLoadingSymbols, setIsLoadingSymbols] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rendererType, setRendererType] = useState<'pixi' | 'simple'>('pixi')
   
@@ -31,10 +32,15 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
         const simpleRenderer = new SimpleSlotRenderer(canvasRef.current, project.config.reels)
         rendererRef.current = simpleRenderer
         setRendererType('simple')
+        setIsReady(true)
         
         if (project.config.symbols.length > 0) {
-          await simpleRenderer.loadSymbols(project.config.symbols)
-          setIsReady(true)
+          setIsLoadingSymbols(true)
+          try {
+            await simpleRenderer.loadSymbols(project.config.symbols)
+          } finally {
+            setIsLoadingSymbols(false)
+          }
         }
         
         setError(SIMPLE_RENDERER_MESSAGE)
@@ -61,11 +67,16 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
           const renderer = new SlotRenderer(canvasRef.current!, project.config.reels)
           rendererRef.current = renderer
           setRendererType('pixi')
+          setIsReady(true)
           
           // Load symbols
           if (project.config.symbols.length > 0) {
-            await renderer.loadSymbols(project.config.symbols)
-            setIsReady(true)
+            setIsLoadingSymbols(true)
+            try {
+              await renderer.loadSymbols(project.config.symbols)
+            } finally {
+              setIsLoadingSymbols(false)
+            }
           }
           
           setError(null)
@@ -98,17 +109,21 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
     
     // Update symbols
     if (project.config.symbols.length > 0) {
+      setIsLoadingSymbols(true)
       rendererRef.current.loadSymbols(project.config.symbols).then(() => {
         setIsReady(true)
+        setIsLoadingSymbols(false)
       }).catch((err) => {
         console.error('Failed to load symbols:', err)
         // Still set ready for simple renderer
         if (rendererType === 'simple') {
           setIsReady(true)
         }
+        setIsLoadingSymbols(false)
       })
     } else {
       setIsReady(false)
+      setIsLoadingSymbols(false)
     }
   }, [project.config.symbols, rendererType])
   
@@ -159,6 +174,18 @@ export default function SlotCanvas({ project, isSpinning, onSpin }: SlotCanvasPr
               ? 'Upload symbols to get started'
               : 'Loading symbols...'}
           </p>
+        </div>
+      )}
+      
+      {isReady && !error && project.config.symbols.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+          <p className="text-white text-center">Upload symbols to get started</p>
+        </div>
+      )}
+      
+      {isReady && isLoadingSymbols && project.config.symbols.length > 0 && (
+        <div className="absolute top-3 left-3 text-xs text-white bg-black/70 px-3 py-1 rounded">
+          Loading symbols…
         </div>
       )}
       
