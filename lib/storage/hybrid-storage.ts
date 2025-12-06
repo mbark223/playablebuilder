@@ -2,6 +2,14 @@ import { StateStorage } from 'zustand/middleware'
 import { createIndexedDBStorage, getFileStorage } from './indexed-db-storage'
 import type { SlotProject, BrandAsset, Symbol } from '@/types'
 
+const globalScope = typeof globalThis !== 'undefined'
+  ? (globalThis as any)
+  : (typeof window !== 'undefined' ? (window as any) : {})
+
+const HYBRID_STORAGE_KEY = '__PLAYABLE_AD_HYBRID_STORAGE__'
+const HYBRID_STORAGE_PROMISE_KEY = '__PLAYABLE_AD_HYBRID_STORAGE_PROMISE__'
+const HYBRID_STATE_STORAGE_KEY = '__PLAYABLE_AD_STATE_STORAGE__'
+
 interface FileReference {
   id: string
   projectId: string
@@ -309,13 +317,42 @@ export class HybridStorage {
   }
 }
 
-export const createHybridStorage = async (): Promise<StateStorage> => {
-  const storage = new HybridStorage()
-  await storage.init()
-  
-  return {
-    getItem: (name) => storage.getItem(name),
-    setItem: (name, value) => storage.setItem(name, value),
-    removeItem: (name) => storage.removeItem(name)
+let hybridStorageInstance: HybridStorage | null = globalScope[HYBRID_STORAGE_KEY] ?? null
+let hybridStoragePromise: Promise<HybridStorage> | null = globalScope[HYBRID_STORAGE_PROMISE_KEY] ?? null
+let hybridStateStorage: StateStorage | null = globalScope[HYBRID_STATE_STORAGE_KEY] ?? null
+
+async function getHybridStorageInstance(): Promise<HybridStorage> {
+  if (hybridStorageInstance) return hybridStorageInstance
+  if (!hybridStoragePromise) {
+    const instance = new HybridStorage()
+    hybridStoragePromise = instance.init().then(() => {
+      hybridStorageInstance = instance
+      globalScope[HYBRID_STORAGE_KEY] = hybridStorageInstance
+      hybridStoragePromise = null
+      globalScope[HYBRID_STORAGE_PROMISE_KEY] = null
+      return instance
+    }).catch((error) => {
+      hybridStoragePromise = null
+      globalScope[HYBRID_STORAGE_PROMISE_KEY] = null
+      throw error
+    })
+    globalScope[HYBRID_STORAGE_PROMISE_KEY] = hybridStoragePromise
   }
+  return hybridStoragePromise!
+}
+
+export const getHybridStorage = getHybridStorageInstance
+
+export const createHybridStorage = async (): Promise<StateStorage> => {
+  if (!hybridStateStorage) {
+    const storage = await getHybridStorageInstance()
+    hybridStateStorage = {
+      getItem: (name) => storage.getItem(name),
+      setItem: (name, value) => storage.setItem(name, value),
+      removeItem: (name) => storage.removeItem(name)
+    }
+  }
+  
+  globalScope[HYBRID_STATE_STORAGE_KEY] = hybridStateStorage
+  return hybridStateStorage
 }

@@ -5,7 +5,7 @@ import { AlertCircle, Database, HardDrive } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { HybridStorage } from '@/lib/storage/hybrid-storage'
+import { getHybridStorage } from '@/lib/storage/hybrid-storage'
 import { formatFileSize } from '@/lib/utils'
 
 interface StorageInfo {
@@ -36,8 +36,7 @@ export function StorageMonitor() {
 
   const checkStorage = async () => {
     try {
-      const storage = new HybridStorage()
-      await storage.init()
+      const storage = await getHybridStorage()
       const info = await storage.getStorageInfo()
       setStorageInfo(info)
     } catch (error) {

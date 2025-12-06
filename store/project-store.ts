@@ -1500,8 +1500,7 @@ export const useProjectStore = create<ProjectStore>()(
           setItem: () => Promise.resolve(),
           removeItem: () => Promise.resolve()
         }
-      }),
-      skipHydration: true
+      })
     }
   )
 )

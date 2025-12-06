@@ -8,6 +8,8 @@ export interface CreatePixiAppOptions {
   backgroundColor?: number
 }
 
+let pixiAvailable: boolean | null = null
+
 // Monkey patch PIXI to avoid the shader check error
 if (typeof window !== 'undefined') {
   try {
@@ -35,6 +37,22 @@ if (typeof window !== 'undefined') {
 }
 
 export function createPixiApp(options: CreatePixiAppOptions): PIXI.Application | null {
+  if (pixiAvailable === false) {
+    console.warn('PIXI renderer previously failed to initialize; using fallback renderer.')
+    return null
+  }
+
+  const isWebglSupported = typeof window !== 'undefined'
+    && typeof (PIXI as any).utils?.isWebGLSupported === 'function'
+    ? (PIXI as any).utils.isWebGLSupported()
+    : true
+
+  if (!isWebglSupported) {
+    pixiAvailable = false
+    console.warn('WebGL is not supported in this environment; skipping PIXI initialization.')
+    return null
+  }
+
   try {
     // Don't try to get 2D context first as it might conflict with PIXI
     // Let PIXI handle the context creation
@@ -66,9 +84,11 @@ export function createPixiApp(options: CreatePixiAppOptions): PIXI.Application |
       } as any);
       
       console.log('Successfully initialized Canvas renderer');
+      pixiAvailable = true
       return app;
     } catch (pixiError) {
       console.error('PIXI initialization failed:', pixiError);
+      pixiAvailable = false
       
       // Last resort: try with absolute minimal settings
       try {
@@ -80,14 +100,17 @@ export function createPixiApp(options: CreatePixiAppOptions): PIXI.Application |
         } as any);
         
         console.log('Initialized with minimal settings');
+        pixiAvailable = true
         return minimalApp;
       } catch (minimalError) {
         console.error('Minimal initialization also failed:', minimalError);
+        pixiAvailable = false
         return null;
       }
     }
   } catch (error) {
     console.error('Canvas setup failed:', error);
+    pixiAvailable = false
     return null;
   }
 }
