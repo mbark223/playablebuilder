@@ -34,6 +34,13 @@ export default function Home() {
   const artboardSummary = currentProject?.canvas?.artboards ?? []
   const activeTemplate = currentProject?.templateId ? getTemplateById(currentProject.templateId) : null
   
+  useEffect(() => {
+    if (!isStoreHydrated) return
+    if (!currentProject && projects.length === 0) {
+      setShowProjectDialog(true)
+    }
+  }, [currentProject, projects, isStoreHydrated])
+  
   if (!isStoreHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -41,12 +48,6 @@ export default function Home() {
       </div>
     )
   }
-  
-  useEffect(() => {
-    if (!currentProject && projects.length === 0) {
-      setShowProjectDialog(true)
-    }
-  }, [currentProject, projects])
   
   const handleSpin = async () => {
     setIsSpinning(true)
